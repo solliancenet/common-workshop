@@ -654,6 +654,12 @@ function InstallNotepadPP()
 	}
 }
 
+function InstallDocker()
+{
+    Install-Module -Name DockerMsftProvider -Repository PSGallery -Force;
+    Install-Package -Name docker -ProviderName DockerMsftProvider -force;
+}
+
 function InstallUbuntu()
 {
     write-host "Installing Ubuntu";
@@ -676,6 +682,12 @@ function InstallUbuntu()
     Invoke-WebRequest -Uri https://aka.ms/wsl-ubuntu-2004 -OutFile "$path/Ubuntu2004.appx" -UseBasicParsing
 
     powershell.exe -c "`$user='$localusername'; `$pass='$password'; try { Invoke-Command -ScriptBlock { Add-AppxPackage `"$path\Ubuntu2004.appx`" } -ComputerName localhost -Credential (New-Object System.Management.Automation.PSCredential `$user,(ConvertTo-SecureString `$pass -AsPlainText -Force)) } catch { echo `$_.Exception.Message }" 
+}
+
+function InstallEdge()
+{
+    #get windows version...
+    Get-AppXPackage -AllUsers -Name Microsoft.MicrosoftEdge | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml" -Verbose}
 }
 
 function InstallChrome()
@@ -847,14 +859,15 @@ function InstallWSL()
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 }
 
-function UpdateVisualStudio($edition)
+function UpdateVisualStudio($edition, $year)
 {
+    $year = "2019";
+
     mkdir c:\temp -ea silentlycontinue
     cd c:\temp
     
-    Write-Host "Update Visual Studio." -ForegroundColor Yellow
+    Write-Host "Update Visual Studio $year [$edition]."
 
-    $Edition = 'Enterprise';
     $Channel = 'Release';
     $channelUri = "https://aka.ms/vs/16/release";
     $responseFileName = "vs";
@@ -865,24 +878,19 @@ function UpdateVisualStudio($edition)
     #$channelId = (Get-Content $responseFile | ConvertFrom-Json).channelId
     
     $bootstrapperUri = "$channelUri/vs_$($Edition.ToLowerInvariant()).exe"
-    Write-Host "Downloading Visual Studio 2019 $Edition ($Channel) bootstrapper from $bootstrapperUri"
+    Write-Host "Downloading Visual Studio $year $Edition ($Channel) bootstrapper from $bootstrapperUri"
 
+    #download a bootstrapper
     $WebClient = New-Object System.Net.WebClient
     $WebClient.DownloadFile($bootstrapperUri,$bootstrapper)
 
-    #& $bootstrapper update --quiet
-
-    Start-Process $bootstrapper -Wait -ArgumentList 'update --quiet'
+    $bootstrapper = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe";
 
     #update visual studio installer
-    #& "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" update --quiet
+    Start-Process $bootstrapper -Wait -ArgumentList 'update --quiet'
 
     #update visual studio
-    #& "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" update  --quiet --norestart --installPath 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise'
-
-    #& $bootstrapper update  --quiet --norestart --installPath 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise'
-
-    Start-Process $bootstrapper -Wait -ArgumentList "update --quiet --norestart --installPath 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise'"
+    Start-Process $bootstrapper -Wait -ArgumentList "update --quiet --norestart --installPath 'C:\Program Files (x86)\Microsoft Visual Studio\$year\$edition'"
 }
 
 #Disable-InternetExplorerESC
@@ -995,4 +1003,28 @@ function CreateCredFile($azureUsername, $azurePassword, $azureTenantID, $azureSu
   (Get-Content -Path "C:\LabFiles\AzureCreds.ps1") | ForEach-Object {$_ -Replace "DeploymentIDValue", "$deploymentId"} | Set-Content -Path "C:\LabFiles\AzureCreds.ps1"
   (Get-Content -Path "C:\LabFiles\AzureCreds.ps1") | ForEach-Object {$_ -Replace "ODLIDValue", "$odlId"} | Set-Content -Path "C:\LabFiles\AzureCreds.ps1"
   Copy-Item "C:\LabFiles\AzureCreds.txt" -Destination "C:\Users\Public\Desktop"
+}
+
+function DownloadPSExec()
+{
+    $url = "https://download.sysinternals.com/files/PSTools.zip";
+
+    $WebClient = New-Object System.Net.WebClient;
+    $WebClient.DownloadFile($url,"C:\temp\PSTools.zip")
+
+    #extract
+
+}
+
+function RunAsSystem($scriptPath, $arguments)
+{
+    psexec.exe -i -s powershell.exe -file $scriptpath -argumentlist $arguments;
+}
+
+function RerunInstall($scriptPath)
+{
+    #get the creds
+
+    #call the script
+    powershell.exe -FilePath $scriptpath;
 }
