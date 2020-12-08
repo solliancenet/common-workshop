@@ -689,6 +689,62 @@ function InstallChrome()
     Remove-Item $Path\$Installer
 }
 
+function InstallFiddler()
+{
+  write-host "Installing Fiddler";
+
+  InstallChocolaty;
+
+  choco install fiddler --ignoredetectedreboot
+}
+
+function InstallPostman()
+{
+  write-host "Installing Postman";
+
+  InstallChocolaty;
+
+  choco install postman --ignoredetectedreboot
+}
+
+function InstallSmtp4Dev()
+{
+  write-host "Installing Smtp4Dev";
+
+  InstallChocolaty;
+
+  choco install smtp4dev --ignoredetectedreboot
+}
+
+function InstallDotNet5()
+{
+  write-host "Installing DotNet5";
+
+  $url = "https://download.visualstudio.microsoft.com/download/pr/21511476-7a5b-4bfe-b96e-3d9ebc1f01ab/f2cf00c22fcd52e96dfee7d18e47c343/dotnet-sdk-5.0.100-preview.7.20366.6-win-x64.exe";
+  $output = "$env:TEMP\dotnet.exe";
+  Invoke-WebRequest -Uri $url -OutFile $output; 
+
+  $productPath = "$env:TEMP";
+  $productExec = "dotnet.exe"	
+  $argList = "/SILENT"
+  start-process "$productPath\$productExec" -ArgumentList $argList -wait
+}
+
+function InstallDotNetCore($version)
+{
+  write-host "Installing Dot Core $version";
+
+    try
+    {
+        Invoke-WebRequest 'https://dot.net/v1/dotnet-install.ps1' -OutFile 'dotnet-install.ps1';
+        ./dotnet-install.ps1 -Channel $version;
+    }
+    catch
+    {
+        write-host $_.exception.message;
+    }
+}
+
 function InstallDockerDesktop()
 {
     write-host "Installing Docker Desktop";
@@ -751,19 +807,25 @@ function InstallWSL2
     #>
 }
 
-function InstallVisualStudio()
+function InstallVisualStudio($edition)
 {
-    write-host "Installing Visual Studio";
+    Write-Host "Install Visual Studio [$edition]." -ForegroundColor Yellow
 
     # Install Chocolatey
-    if (!(Get-Command choco.exe -ErrorAction SilentlyContinue)) {
-        Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))}
+    if (!(Get-Command choco.exe -ErrorAction SilentlyContinue)) 
+    {
+        Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+    }
         
-        # Install Visual Studio 2019 Community version
-        #choco install visualstudio2019community -y
+    if ($edition -eq "enterprise")
+    {
+      choco install visualstudio2019enterprise -y
+    }
 
-        # Install Visual Studio 2019 Enterprise version
-        choco install visualstudio2019enterprise -y --ignoredetectedreboot
+    if ($edition -eq "community")
+    {
+      choco install visualstudio2019community -y
+    }
 }
 
 function InstallWSL()
