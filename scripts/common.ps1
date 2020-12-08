@@ -660,6 +660,19 @@ function InstallDocker()
     Install-Package -Name docker -ProviderName DockerMsftProvider -force;
 }
 
+function InstallDockerWin10()
+{   
+    Write-Host "Installing Docker." -ForegroundColor Yellow
+
+    dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+    #WSL
+ 
+    dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+
+    Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
+    #wsl --set-default-version 2
+}
+
 function InstallUbuntu()
 {
     write-host "Installing Ubuntu";
@@ -708,6 +721,11 @@ function InstallFiddler()
   InstallChocolaty;
 
   choco install fiddler --ignoredetectedreboot
+}
+
+function InstallPorter()
+{
+  iwr "https://cdn.porter.sh/latest/install-windows.ps1" -UseBasicParsing | iex
 }
 
 function InstallPostman()
