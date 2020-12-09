@@ -1011,11 +1011,35 @@ function AddVisualStudioWorkload($edition, $workloadName)
     
     Write-Host "Adding Visual Studio workload [$workloadName] to [$edition $year]."
 
+    <#
+    if ($edition -eq "preview")
+    {
+        $Channel = 'Preview';
+        $channelUri = "https://aka.ms/vs/16/$channel";
+        $responseFileName = "vs";
+    
+        $intermedateDir = "c:\temp";
+        $bootstrapper = "$intermedateDir\vs_enterprise.exe"
+        #$responseFile = "$PSScriptRoot\$responseFileName.json"
+        #$channelId = (Get-Content $responseFile | ConvertFrom-Json).channelId
+        
+        $bootstrapperUri = "$channelUri/vs_enterprise.exe"
+        
+        Write-Host "Downloading Visual Studio $year $Edition ($Channel) bootstrapper from $bootstrapperUri"
+        $WebClient = New-Object System.Net.WebClient
+        $WebClient.DownloadFile($bootstrapperUri,$bootstrapper)
+    }
+    #>
+    
     $installPath = "C:\Program Files (x86)\Microsoft Visual Studio\$year\$edition"
     $intermedateDir = "c:\temp";
     $bootstrapper = "$intermedateDir\vs_$edition.exe"
     $bootstrapper = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer";
-    Start-Process $bootstrapper -Wait -ArgumentList "modify --add $workloadName --quiet --norestart --installPath `"$installPath`""
+
+    $args = "modify --add $workloadName --quiet --norestart --installPath `"$installPath`"";
+    write-host "Running $bootstrapper $args"
+    Start-Process $bootstrapper -Wait -ArgumentList $args
+
 }
 
 #Disable-InternetExplorerESC
