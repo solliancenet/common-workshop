@@ -5,14 +5,15 @@ COPYRIGHT SOLLIANCE / CHRIS GIVENS
 function InitSetup()
 {
     #all things that are common
+    reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v HideFileExt /t REG_DWORD /d 0 /f
 
-
+    wevtutil set-log Microsoft-Windows-TaskScheduler/Operational /enabled:true
 }
 
 function Finalize()
 {
     #all things that must be done at end
-
+    remove-item "c:\labfiles\common.ps1" -ea silentlycontinue
 }
 
 function AddShortcut($user, $path, $name, $exec, $args)
