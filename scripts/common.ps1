@@ -89,11 +89,76 @@ function InstallMongoDriver()
     #TODO
 }
 
-function InstallVisualStudioCode()
+function InstallVisualStudioCode($AdditionalExtensions)
 {
     write-host "Installing Visual Studio Code";
 
-    choco install vscode --ignoredetectedreboot
+    choco install vscode --ignoredetectedreboot;
+
+    $Architecture = "64-bit";
+  $BuildEdition = "Stable";
+
+  switch ($Architecture) 
+  {
+    "64-bit" {
+        if ((Get-CimInstance -ClassName Win32_OperatingSystem).OSArchitecture -eq "64-bit") {
+            $codePath = $env:ProgramFiles
+            $bitVersion = "win32-x64"
+        }
+        else {
+            $codePath = $env:ProgramFiles
+            $bitVersion = "win32"
+            $Architecture = "32-bit"
+        }
+        break;
+    }
+    "32-bit" {
+        if ((Get-CimInstance -ClassName Win32_OperatingSystem).OSArchitecture -eq "32-bit"){
+            $codePath = $env:ProgramFiles
+            $bitVersion = "win32"
+        }
+        else {
+            $codePath = ${env:ProgramFiles(x86)}
+            $bitVersion = "win32"
+        }
+        break;
+    }
+}
+
+switch ($BuildEdition) {
+    "Stable" {
+        $codeCmdPath = "$codePath\Microsoft VS Code\bin\code.cmd"
+        $appName = "Visual Studio Code ($($Architecture))"
+        break;
+    }
+    "Insider" {
+        $codeCmdPath = "$codePath\Microsoft VS Code Insiders\bin\code-insiders.cmd"
+        $appName = "Visual Studio Code - Insiders Edition ($($Architecture))"
+        break;
+    }
+}
+
+  if (!(Test-Path $codeCmdPath)) 
+  {
+    Remove-Item -Force "$env:TEMP\vscode-$($BuildEdition).exe" -ErrorAction SilentlyContinue
+
+    #latest release
+    $url = "https://vscode-update.azurewebsites.net/latest/$($bitVersion)/$($BuildEdition)";
+
+    Invoke-WebRequest -Uri $url -OutFile "C:\temp\vscode-$($BuildEdition).exe"
+
+    Start-Process -Wait "C:\temp\vscode-$($BuildEdition).exe" -ArgumentList /silent, /mergetasks=!runcode
+  }
+  else {
+      Write-Host "`n$appName is already installed." -ForegroundColor Yellow
+  }
+
+  $extensions = @("ms-vscode.PowerShell") + $AdditionalExtensions
+
+  foreach ($extension in $extensions) {
+      Write-Host "`nInstalling extension $extension..." -ForegroundColor Yellow
+      & $codeCmdPath --install-extension $extension
+  }
 }
 
 function LoadCosmosDbViaMongo($cosmosConnection)
@@ -656,6 +721,8 @@ function InstallNotepadPP()
 
 function InstallDocker()
 {
+    write-host "Installing Docker";
+
     Install-Module -Name DockerMsftProvider -Repository PSGallery -Force;
     Install-Package -Name docker -ProviderName DockerMsftProvider -force;
 }
@@ -825,7 +892,7 @@ function InstallWSL2
     #download it...		
     Start-BitsTransfer -Source $DownloadNotePad -DisplayName Notepad -Destination "wsl_update_x64.msi"
 
-    $credentials = New-Object System.Management.Automation.PSCredential -ArgumentList @($localusername,(ConvertTo-SecureString -String $password -AsPlainText -Force))
+    #$credentials = New-Object System.Management.Automation.PSCredential -ArgumentList @($localusername,(ConvertTo-SecureString -String $password -AsPlainText -Force))
 
     #Start-Process msiexec.exe -Wait -ArgumentList '/I C:\temp\wsl_update_x64.msi /quiet' -Credential $credentials
     Start-Process msiexec.exe -Wait -ArgumentList '/I C:\temp\wsl_update_x64.msi /quiet'
@@ -849,12 +916,17 @@ function InstallVisualStudio($edition)
         
     if ($edition -eq "enterprise")
     {
-      choco install visualstudio2019enterprise -y
+      choco install visualstudio2019enterprise -y --ignoredetectedreboot
     }
 
     if ($edition -eq "community")
     {
-      choco install visualstudio2019community -y
+      choco install visualstudio2019community -y --ignoredetectedreboot
+    }
+
+    if ($edition -eq "preview")
+    {
+        choco install visualstudio2019enterprise-preview -pre -y --ignoredetectedreboot
     }
 }
 
@@ -914,7 +986,7 @@ function UpdateVisualStudio($edition, $year)
 function AddVisualStudioWorkload($edition, $workloadName)
 {
     $year = "2019";
-    
+
     mkdir c:\temp -ea silentlycontinue
     cd c:\temp
     
@@ -980,6 +1052,8 @@ function InstallAzureCli()
 
 function InstallChocolaty()
 {
+    write-host "Installing Chocolaty";
+
   $env:chocolateyUseWindowsCompression = 'true'
   Set-ExecutionPolicy Bypass -Scope Process -Force; 
   [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; 
