@@ -5,9 +5,14 @@ COPYRIGHT SOLLIANCE / CHRIS GIVENS
 function InitSetup()
 {
     #all things that are common
+    reg add HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v HideFileExt /t REG_DWORD /d 0 /f
     reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v HideFileExt /t REG_DWORD /d 0 /f
 
+    reg add HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v Hidden /t REG_DWORD /d 0 /f
+    reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v Hidden /t REG_DWORD /d 0 /f
+
     wevtutil set-log Microsoft-Windows-TaskScheduler/Operational /enabled:true
+
 }
 
 function Finalize()
@@ -1071,7 +1076,7 @@ function InstallChocolaty()
     if (!$item)
     {
         write-host "Installing Chocolaty";
-        
+
         $env:chocolateyUseWindowsCompression = 'true'
         Set-ExecutionPolicy Bypass -Scope Process -Force; 
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; 
