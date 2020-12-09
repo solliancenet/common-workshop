@@ -1066,6 +1066,30 @@ function UpdateVisualStudio($edition, $year)
     Start-Process $bootstrapper -Wait -ArgumentList "update --quiet --norestart --installPath 'C:\Program Files (x86)\Microsoft Visual Studio\$year\$edition'"
 }
 
+<#
+function AddVisualStudioWorkload($edition, $workloadName, $isPreview)
+{
+    mkdir c:\temp -ea silentlycontinue
+    cd c:\temp
+    
+    Write-Host "Adding Visual Studio workload [$workloadName]."
+
+    if ($isPreview)
+    {
+        $bootstrapper = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer";
+        $installPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Preview"
+        Start-Process $bootstrapper -Wait -ArgumentList "modify --add $workloadName --passive --quiet --norestart --installPath `"$installPath`""   
+    }
+    else
+    {
+      $intermedateDir = "c:\temp";
+      $bootstrapper = "$intermedateDir\vs_$edition.exe"
+      Start-Process $bootstrapper -Wait -ArgumentList "--add $workloadName --passive --quiet --norestart"
+    }
+}
+#>
+
+
 function AddVisualStudioWorkload($edition, $workloadName)
 {
     $year = "2019";
