@@ -759,9 +759,17 @@ function InstallDockerWin10()
     #wsl --set-default-version 2
 }
 
-function InstallUbuntu()
+function SetupWSL()
 {
-    write-host "Installing Ubuntu";
+    wsl --set-default-version 2
+    wsl --set-version Ubuntu-18.04 2
+    wsl --list -v
+}
+
+
+function DownloadUbuntu()
+{
+    write-host "Downloading Ubuntu";
 
     winrm quickconfig -force
 
@@ -770,17 +778,57 @@ function InstallUbuntu()
     $Path = "c:/temp";
     Invoke-WebRequest -Uri https://aka.ms/wsl-ubuntu-1604 -OutFile "$path/Ubuntu1604.appx" -UseBasicParsing
 
-    powershell.exe -c "`$user='$localusername'; `$pass='$password'; try { Invoke-Command -ScriptBlock { Add-AppxPackage `"$path\Ubuntu1604.appx`" } -ComputerName localhost -Credential (New-Object System.Management.Automation.PSCredential `$user,(ConvertTo-SecureString `$pass -AsPlainText -Force)) } catch { echo `$_.Exception.Message }" 
+    #powershell.exe -c "`$user='$localusername'; `$pass='$password'; try { Invoke-Command -ScriptBlock { Add-AppxPackage `"$path\Ubuntu1604.appx`" } -ComputerName localhost -Credential (New-Object System.Management.Automation.PSCredential `$user,(ConvertTo-SecureString `$pass -AsPlainText -Force)) } catch { echo `$_.Exception.Message }" 
+    Add-AppxPackage `"$path\Ubuntu1604.appx`"
 
     write-host "Downloading Ubuntu (1804)";
     Invoke-WebRequest -Uri https://aka.ms/wsl-ubuntu-1804 -OutFile "$path/Ubuntu1804.appx" -UseBasicParsing
 
-    powershell.exe -c "`$user='$localusername'; `$pass='$password'; try { Invoke-Command -ScriptBlock { Add-AppxPackage `"$path\Ubuntu1804.appx`" } -ComputerName localhost -Credential (New-Object System.Management.Automation.PSCredential `$user,(ConvertTo-SecureString `$pass -AsPlainText -Force)) } catch { echo `$_.Exception.Message }" 
+    #powershell.exe -c "`$user='$localusername'; `$pass='$password'; try { Invoke-Command -ScriptBlock { Add-AppxPackage `"$path\Ubuntu1804.appx`" } -ComputerName localhost -Credential (New-Object System.Management.Automation.PSCredential `$user,(ConvertTo-SecureString `$pass -AsPlainText -Force)) } catch { echo `$_.Exception.Message }" 
+    Add-AppxPackage `"$path\Ubuntu1804.appx`"
 
-    write-host "Downloading Ubuntu (2004)";
-    Invoke-WebRequest -Uri https://aka.ms/wsl-ubuntu-2004 -OutFile "$path/Ubuntu2004.appx" -UseBasicParsing
+    #write-host "Downloading Ubuntu (2004)";
+    #Invoke-WebRequest -Uri https://aka.ms/wsl-ubuntu-2004 -OutFile "$path/Ubuntu2004.appx" -UseBasicParsing
 
-    powershell.exe -c "`$user='$localusername'; `$pass='$password'; try { Invoke-Command -ScriptBlock { Add-AppxPackage `"$path\Ubuntu2004.appx`" } -ComputerName localhost -Credential (New-Object System.Management.Automation.PSCredential `$user,(ConvertTo-SecureString `$pass -AsPlainText -Force)) } catch { echo `$_.Exception.Message }" 
+    #powershell.exe -c "`$user='$localusername'; `$pass='$password'; try { Invoke-Command -ScriptBlock { Add-AppxPackage `"$path\Ubuntu2004.appx`" } -ComputerName localhost -Credential (New-Object System.Management.Automation.PSCredential `$user,(ConvertTo-SecureString `$pass -AsPlainText -Force)) } catch { echo `$_.Exception.Message }" 
+}
+
+function InstallUbuntu()
+{
+    write-host "Installing Ubuntu (1604)";
+    $app = Add-AppxProvisionedPackage -Online -PackagePath C:\temp\Ubuntu1604.appx -skiplicense
+    start-sleep 10;
+
+    cd 'C:\Program Files\WindowsApps\'
+
+    if ($app.Online)
+    {
+        $installCommand = (Get-ChildItem -Path ".\" -Recurse ubuntu1604.exe)[0].Directory.FullName + "\Ubuntu1604.exe"
+
+        write-host "Starting $installCommand";
+        start-process $installCommand;
+        start-sleep 20;
+        stop-process -name "ubuntu1604" -force
+    }
+
+    write-host "Installing Ubuntu (1804)";
+    $app = Add-AppxProvisionedPackage -Online -PackagePath C:\temp\Ubuntu1804.appx -skiplicense
+    start-sleep 10;
+
+    if ($app.Online)
+    {
+        $installCommand = (Get-ChildItem -Path ".\" -Recurse ubuntu1804.exe)[0].Directory.FullName + "\Ubuntu1804.exe"
+        write-host "Starting $installCommand";
+        start-process $installCommand;
+
+        start-sleep 20;
+        stop-process -name "ubuntu1804" -force
+    }
+
+    #write-host "Installing Ubuntu (2004)";
+    #Add-AppxProvisionedPackage -Online -PackagePath C:\temp\Ubuntu2004.appx -skiplicense
+    #$installCommand = (Get-ChildItem -Path ".\" -Recurse ubuntu2004.exe)[0].Directory.FullName + "\Ubuntu2004.exe"
+    #start-process $installCommand;
 }
 
 function InstallEdge()
@@ -897,6 +945,22 @@ function InstallDockerDesktop()
     $json.kubernetesEnabled = $true;
     set-content $file $json;
     #>
+}
+
+function UpdateDockerSettings($user)
+{
+    $filePath = "C:\Users\$user\AppData\Roaming\Docker\settings.json"
+    write-host "Updating docker settings [$filePath]";
+
+    $data = get-content $filePath -raw;
+
+    $json = ConvertFrom-json $data;
+
+    $json.autoStart = $true;
+    $json.kubernetesEnabled = $true;
+
+    $data = ConvertTo-Json $json;
+    Set-content $filePath $data;
 }
 
 function InstallWSL2
@@ -1036,8 +1100,9 @@ function AddVisualStudioWorkload($edition, $workloadName)
     $bootstrapper = "$intermedateDir\vs_$edition.exe"
     $bootstrapper = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer";
 
-    $args = "modify --add $workloadName --quiet --norestart --installPath `"$installPath`"";
-    write-host "Running $bootstrapper $args"
+    #$args = "modify --add $workloadName --quite --norestart --installPath `"$installPath`"";
+    $args = "modify --add $workloadName --passive --norestart --installPath `"$installPath`"";
+    write-host "Running `"$bootstrapper`" $args"
     Start-Process $bootstrapper -Wait -ArgumentList $args
 
 }
