@@ -929,7 +929,7 @@ function AddVisualStudioWorkload($edition, $workloadName)
     {
         $bootstrapper = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer";
         $installPath = "C:\Program Files (x86)\Microsoft Visual Studio\$year\$edition";
-        Start-Process $bootstrapper -Wait -ArgumentList "modify --add $workloadName --passive --quiet --norestart --installPath `"$installPath`""   
+        Start-Process $bootstrapper -Wait -ArgumentList "modify --add $workloadName --quiet --norestart --installPath `"$installPath`""   
     }
     else
     {
@@ -937,7 +937,7 @@ function AddVisualStudioWorkload($edition, $workloadName)
         $intermedateDir = "c:\temp";
         $bootstrapper = "$intermedateDir\vs_$edition.exe"
         $bootstrapper = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer";
-        Start-Process $bootstrapper -Wait -ArgumentList "--add $workloadName --passive --quiet --norestart --installPath `"$installPath`""
+        Start-Process $bootstrapper -Wait -ArgumentList "--add $workloadName --quiet --norestart --installPath `"$installPath`""
     }
 }
 
