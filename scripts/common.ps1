@@ -1066,12 +1066,12 @@ function InstallAzureCli()
 
 function InstallChocolaty()
 {
-    write-host "Installing Chocolaty";
-
-    $item = get-item "C:\ProgramData\chocolatey\choco.exe"
+    $item = get-item "C:\ProgramData\chocolatey\choco.exe" -ea silentlycontinue;
 
     if (!$item)
     {
+        write-host "Installing Chocolaty";
+        
         $env:chocolateyUseWindowsCompression = 'true'
         Set-ExecutionPolicy Bypass -Scope Process -Force; 
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; 
