@@ -2,6 +2,19 @@
 COPYRIGHT SOLLIANCE / CHRIS GIVENS
 #>
 
+function InitSetup()
+{
+    #all things that are common
+
+
+}
+
+function Finalize()
+{
+    #all things that must be done at end
+
+}
+
 function AddShortcut($user, $path, $name, $exec, $args)
 {
     write-host "Creating shortcut to $path"
@@ -1054,14 +1067,19 @@ function InstallChocolaty()
 {
     write-host "Installing Chocolaty";
 
-  $env:chocolateyUseWindowsCompression = 'true'
-  Set-ExecutionPolicy Bypass -Scope Process -Force; 
-  [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; 
-  iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+    $item = get-item "C:\ProgramData\chocolatey\choco.exe"
 
-  $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+    if (!$item)
+    {
+        $env:chocolateyUseWindowsCompression = 'true'
+        Set-ExecutionPolicy Bypass -Scope Process -Force; 
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; 
+        iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+    }
 
-  choco feature enable -n allowGlobalConfirmation
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+
+    choco feature enable -n allowGlobalConfirmation
 }
 
 #Create InstallAzPowerShellModule
