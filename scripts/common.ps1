@@ -574,7 +574,7 @@ function InstallPutty()
 	
 	if (!$item)
 	{
-		$downloadNotePad = "https://the.earth.li/~sgtatham/putty/latest/w64/putty-64bit-0.74-installer.msi";
+		$downloadNotePad = "https://the.earth.li/~sgtatham/putty/latest/w64/putty-64bit-0.75-installer.msi";
 
         mkdir c:\temp -ea silentlycontinue 
 		
@@ -922,7 +922,7 @@ function InstallFiddler()
 
   InstallChocolaty;
 
-  choco install fiddler --ignoredetectedreboot
+  choco install fiddler --ignoredetectedreboot --force
 }
 
 function InstallPorter()
