@@ -899,6 +899,13 @@ function InstallUbuntu()
     #start-process $installCommand;
 }
 
+function InstallOffice()
+{
+    InstallChocolaty;
+
+    choco install microsoft-office-deployment --ignoredetectedreboot --force
+}
+
 function InstallEdge()
 {
     #get windows version...
