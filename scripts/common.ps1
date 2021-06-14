@@ -802,6 +802,11 @@ function InstallDocker()
     Install-Package -Name docker -ProviderName DockerMsftProvider -force;
 }
 
+function InstallDockerCompose()
+{
+    choco install docker-compose
+}
+
 function InstallDockerWin10()
 {   
     Write-Host "Installing Docker." -ForegroundColor Yellow
