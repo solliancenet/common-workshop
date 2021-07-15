@@ -21,6 +21,176 @@ function Finalize()
     remove-item "c:\labfiles\httphelper.ps1" -ea silentlycontinue
 }
 
+function EnableAzureDefender()
+{
+    Register-AzResourceProvider -ProviderNamespace 'Microsoft.Security'
+
+    Get-AzSecurityPricing | Select-Object Name, PricingTier
+
+    $Resources = Get-AzSecurityPricing | Select-Object Name
+
+    foreach ($resource in $Resources)
+    {
+      Set-AzSecurityPricing -Name $resource.name -PricingTier "Standard"
+    }
+
+    Get-AzSecurityPricing | Select-Object Name, PricingTier
+}
+
+function EnableASCAutoProvision()
+{
+    Set-AzSecurityAutoProvisioningSetting -Name "default" -EnableAutoProvision
+
+    #azure dependency agent for linux
+    $def2 = Get-AzPolicyDefinition -Id "/providers/Microsoft.Authorization/policyDefinitions/4da21710-ce6f-4e06-8cdb-5cc4c93ffbee"
+
+    #azure dependency agent for windows
+    $def3 = Get-AzPolicyDefinition -Id "/providers/Microsoft.Authorization/policyDefinitions/1c210e94-a481-4beb-95fa-1571b434fb04"
+
+    $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Linux" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def2 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location 'Central US' #$rg.location
+    $assign | Set-AzPolicyAssignment -EnforcementMode Default;
+
+    $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Windows" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def3 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location 'Central US' #$rg.location
+    $assign | Set-AzPolicyAssignment -EnforcementMode Default;
+}
+
+function EnableDefaultASCPolicy()
+{
+    #get subscription id
+    $sub = Get-AzSubscription;
+
+    $subscriptionId = $sub.SubscriptionId;
+
+    Register-AzResourceProvider -ProviderNamespace 'Microsoft.PolicyInsights'
+
+    $Policy = Get-AzPolicySetDefinition | where {$_.Properties.displayName -EQ 'Azure Security Benchmark'} 
+    
+    New-AzPolicyAssignment -Name "ASC Default $subscriptionId" -DisplayName "Security Center Default $subscriptionId" -PolicySetDefinition $Policy -Scope "/subscriptions/$subscriptionId"
+}
+
+function EnableAKSPolicy()
+{
+    $sub = Get-AzSubscription;
+
+    $subscriptionId = $sub.SubscriptionId;
+
+    $rg = Get-AzResourceGroup | Where-Object { $_.ResourceGroupName -like "*-security" };
+
+    #azure policy for kubernetes
+    $def1 = Get-AzPolicyDefinition -Id "/providers/Microsoft.Authorization/policyDefinitions/a8eff44f-8c92-45c3-a3fb-9880802d67a7"
+
+    $scope = "/subscriptions/$subscriptionId";
+
+    $assign = New-AzPolicyAssignment -Name "ASC provisioning Azure Policy Addon for Kubernetes" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location 'Central US' #$rg.location
+    $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+}
+
+function EnableSQLVulnerability($servername, $storageAccountName, $emailAddress)
+{
+    $rg = Get-AzResourceGroup | Where-Object { $_.ResourceGroupName -like "*-security" };
+    
+    Get-AzSqlDatabase -ResourceGroupName $rg.ResourceGroupName -ServerName $servername `
+    | where {$_.DatabaseName -ne "master"}  `
+    | Update-AzSqlDatabaseVulnerabilityAssessmentSetting `
+        -StorageAccountName $storageAccountName `
+        -ScanResultsContainerName "vulnerability-assessment" `
+        -RecurringScansInterval Weekly `
+        -EmailAdmins $true `
+		-NotificationEmail @($emailAddress)
+}
+
+function EnableVMVulnerability()
+{
+    #get all vms
+    $vms = Get-AzVM
+
+    #deploy...
+    foreach($vm in $vms)
+    {
+        $res = Invoke-AzRestMethod -Path ('{0}/providers/Microsoft.Security/serverVulnerabilityAssessments/default?api-Version=2015-06-01-preview' -f $vm.id) -Method PUT
+    }
+}
+
+function SetLogAnalyticsAgentConfig($workspaceName)
+{
+    $rg = Get-AzResourceGroup | Where-Object { $_.ResourceGroupName -like "*-security" };
+
+    #get the workspace Id
+    $ws = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroup $rg.ResourceGroupName;
+    $workspaceId = $ws.CustomerId;
+    $keys = Get-AzOperationalInsightsWorkspaceSharedKey -ResourceGroup $rg.ResourceGroupName -Name $workspaceName;
+    $workspaceKey = $keys.PrimarySharedKey;
+
+    $PublicSettings = @{"workspaceId" = $workspaceId }
+    $ProtectedSettings = @{"workspaceKey" = $workspaceKey }
+
+    $vms = Get-AzVM
+
+    #remove it 
+    foreach($vm in $vms)
+    {
+        Remove-AzVMExtension -ResourceGroupName $vm.ResourceGroupName -VMName $vm.Name -Name "MicrosoftMonitoringAgent" -Force;
+    }
+
+    #deploy it...
+    foreach($vm in $vms)
+    {
+        Set-AzVMExtension -ResourceGroupName $vm.ResourceGroupName -Location $vm.Location -VMName $vm.Name -Name "MicrosoftMonitoringAgent" -Publisher "Microsoft.EnterpriseCloud.Monitoring" -ExtensionType "MicrosoftMonitoringAgent" -TypeHandlerVersion "1.0" -Settings $PublicSettings -ProtectedSettings $ProtectedSettings;
+    }
+}
+
+function DeployAllSolutions($workspaceName)
+{
+    Install-Module -Name Az.MonitoringSolutions -Force 
+    
+    $rg = Get-AzResourceGroup | Where-Object { $_.ResourceGroupName -like "*-security" };
+
+    #get the workspace Id
+    $ws = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroup $rg.ResourceGroupName;
+    $workspaceId = $ws.CustomerId;
+    $keys = Get-AzOperationalInsightsWorkspaceSharedKey -ResourceGroup $rg.ResourceGroupName -Name $workspaceName;
+    $workspaceKey = $keys.PrimarySharedKey;
+
+    $solutions = ("SecurityCenterFree", "Security", "Updates", "ContainerInsights", "ServiceMap", "AzureActivity", "ChangeTracking", "VMInsights", "SecurityInsights", "NetworkMonitoring", "SQLVulnerabilityAssessment", "SQLAdvancedThreatProtection", "AntiMalware", "AzureAutomation", "LogicAppsManagement", "SQLDataClassification");
+
+    foreach($sol in $solutions)
+    {
+        New-AzMonitorLogAnalyticsSolution -Type $sol -ResourceGroupName $rg.ResourceGroupName -Location $ws.Location -WorkspaceResourceId $ws.ResourceId
+    }
+
+}
+
+function EnableJIT()
+{
+    $sub = Get-AzSubscription;
+
+    $subscriptionId = $sub.SubscriptionId;
+
+    $rg = Get-AzResourceGroup | Where-Object { $_.ResourceGroupName -like "*-security" };
+
+    $vms = Get-AzVM
+
+    foreach($vm in $vms)
+    {
+
+        $JitPolicy = (@{ id="/subscriptions/$subscriptionId/resourceGroups/$($rg.ResourceGroupName)/providers/Microsoft.Compute/virtualMachines/$($vm.Name)"
+    ports=(@{
+         number=22;
+         protocol="*";
+         allowedSourceAddressPrefix=@("*");
+         maxRequestAccessDuration="PT3H"},
+         @{
+         number=3389;
+         protocol="*";
+         allowedSourceAddressPrefix=@("*");
+         maxRequestAccessDuration="PT3H"})})
+    
+        $JitPolicyArr=@($JitPolicy)
+    
+        Set-AzJitNetworkAccessPolicy -Kind "Basic" -Location $vm.Location -Name $vm.Name -ResourceGroupName $vm.ResourceGroupName -VirtualMachine $JitPolicyArr
+    }
+}
+
 function Check-HttpRedirect($uri)
 {
     $httpReq = [system.net.HttpWebRequest]::Create($uri)
