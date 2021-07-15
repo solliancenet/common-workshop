@@ -68,7 +68,7 @@ function EnableDefaultASCPolicy()
     New-AzPolicyAssignment -Name "ASC Default $subscriptionId" -DisplayName "Security Center Default $subscriptionId" -PolicySetDefinition $Policy -Scope "/subscriptions/$subscriptionId"
 }
 
-function EnableAKSPolicy()
+function EnableAKSPolicy($resourceGroupName)
 {
     $sub = Get-AzSubscription;
 
@@ -83,6 +83,27 @@ function EnableAKSPolicy()
 
     $assign = New-AzPolicyAssignment -Name "ASC provisioning Azure Policy Addon for Kubernetes" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location 'Central US' #$rg.location
     $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+}
+
+function EnableOtherCompliancePolicy($resourceGroupName)
+{
+    $sub = Get-AzSubscription;
+
+    $subscriptionId = $sub.SubscriptionId;
+
+    $rg = Get-AzResourceGroup -Name $resourceGroupName
+
+    #NIST SP 800-53 Rev. 4
+    $def1 = Get-AzPolicySetDefinition -Id "/providers/Microsoft.Authorization/policySetDefinitions/cf25b9c1-bd23-4eb6-bd2c-f4f3ac644a5f"
+    $assign = New-AzPolicyAssignment -Name "2ffdd0e7fecf480d97b9d1e6" -Description "NIST SP 800-53 Rev. 4" -PolicyDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity $rg.location
+    $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+
+    #UKO and UK NHS
+    $def1 = Get-AzPolicySetDefinition -Id "/providers/Microsoft.Authorization/policySetDefinitions/3937f550-eedd-4639-9c5e-294358be442e"
+    $assign = New-AzPolicyAssignment -Name "f33c339c870a4c8f8bdab7ce" -Description "UKO and UK NHS" -PolicyDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity $rg.location
+    $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+
+    #TODO - more of them...
 }
 
 function EnableSQLVulnerability($servername, $storageAccountName, $emailAddress)
@@ -975,6 +996,12 @@ function InstallDocker()
 function InstallDockerCompose()
 {
     choco install docker-compose
+}
+
+function InstallTor()
+{
+    choco install tor
+    choco install tor-browser
 }
 
 function InstallDockerWin10()
