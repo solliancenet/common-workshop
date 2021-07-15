@@ -1004,6 +1004,11 @@ function InstallTor()
     choco install tor-browser
 }
 
+function InstallPowerBI()
+{
+    choco install powerbi
+}
+
 function InstallDockerWin10()
 {   
     Write-Host "Installing Docker." -ForegroundColor Yellow
