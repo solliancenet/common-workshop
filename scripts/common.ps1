@@ -37,6 +37,15 @@ function EnableAzureDefender()
     Get-AzSecurityPricing | Select-Object Name, PricingTier
 }
 
+function ConnectAzureActivityLog($workspaceName, $resourceGroupName)
+{
+    $sub = Get-AzSubscription;
+
+    $subscriptionId = $sub.SubscriptionId;
+
+    New-AzOperationalInsightsAzureActivityLogDataSource -ResourceGroupName $resourceGroupName -WorkspaceName $workspacename -Name "AzureActivityLog" -SubscriptionId $subscriptionId
+}
+
 function EnableASCAutoProvision()
 {
     Set-AzSecurityAutoProvisioningSetting -Name "default" -EnableAutoProvision
@@ -74,7 +83,7 @@ function EnableAKSPolicy($resourceGroupName)
 
     $subscriptionId = $sub.SubscriptionId;
 
-    $rg = Get-AzResourceGroup | Where-Object { $_.ResourceGroupName -like "*-security" };
+    $rg = Get-AzResourceGroup -Name $resourceGroupName
 
     #azure policy for kubernetes
     $def1 = Get-AzPolicyDefinition -Id "/providers/Microsoft.Authorization/policyDefinitions/a8eff44f-8c92-45c3-a3fb-9880802d67a7"
@@ -132,9 +141,9 @@ function EnableVMVulnerability()
     }
 }
 
-function SetLogAnalyticsAgentConfig($workspaceName)
+function SetLogAnalyticsAgentConfig($workspaceName, $resouceGroupName)
 {
-    $rg = Get-AzResourceGroup | Where-Object { $_.ResourceGroupName -like "*-security" };
+    $rg = Get-AzResourceGroup -Name $resouceGroupName
 
     #get the workspace Id
     $ws = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroup $rg.ResourceGroupName;
@@ -149,14 +158,30 @@ function SetLogAnalyticsAgentConfig($workspaceName)
 
     #remove it 
     foreach($vm in $vms)
-    {
-        Remove-AzVMExtension -ResourceGroupName $vm.ResourceGroupName -VMName $vm.Name -Name "MicrosoftMonitoringAgent" -Force;
+    {        
+        if ($vm.OSProfile.WindowsConfiguration)
+        {
+            Remove-AzVMExtension -ResourceGroupName $vm.ResourceGroupName -VMName $vm.Name -Name "MicrosoftMonitoringAgent" -Force;
+        }
+
+        if ($vm.OSProfile.LinuxConfiguration)
+        {
+            Remove-AzVMExtension -ResourceGroupName $vm.ResourceGroupName -VMName $vm.Name -Name "OMSAgentForLinux" -Force;
+        }
     }
 
     #deploy it...
     foreach($vm in $vms)
     {
-        Set-AzVMExtension -ResourceGroupName $vm.ResourceGroupName -Location $vm.Location -VMName $vm.Name -Name "MicrosoftMonitoringAgent" -Publisher "Microsoft.EnterpriseCloud.Monitoring" -ExtensionType "MicrosoftMonitoringAgent" -TypeHandlerVersion "1.0" -Settings $PublicSettings -ProtectedSettings $ProtectedSettings;
+        if ($vm.OSProfile.WindowsConfiguration)
+        {
+            Set-AzVMExtension -ResourceGroupName $vm.ResourceGroupName -Location $vm.Location -VMName $vm.Name -Name "MicrosoftMonitoringAgent" -Publisher "Microsoft.EnterpriseCloud.Monitoring" -ExtensionType "MicrosoftMonitoringAgent" -TypeHandlerVersion "1.0" -Settings $PublicSettings -ProtectedSettings $ProtectedSettings;
+        }
+
+        if ($vm.OSProfile.LinuxConfiguration)
+        {
+            Set-AzVMExtension -ResourceGroupName $vm.ResourceGroupName -Location $vm.Location -VMName $vm.Name -Name "OMSAgentForLinux" -Publisher "Microsoft.EnterpriseCloud.Monitoring" -ExtensionType "OmsAgentForLinux" -TypeHandlerVersion "1.13" -Settings $PublicSettings -ProtectedSettings $ProtectedSettings;
+        }
     }
 }
 
@@ -181,13 +206,13 @@ function DeployAllSolutions($workspaceName)
 
 }
 
-function EnableJIT()
+function EnableJIT($resourceGroupName)
 {
     $sub = Get-AzSubscription;
 
     $subscriptionId = $sub.SubscriptionId;
 
-    $rg = Get-AzResourceGroup | Where-Object { $_.ResourceGroupName -like "*-security" };
+    $rg = Get-AzResourceGroup -Name $resourceGroupName
 
     $vms = Get-AzVM
 
