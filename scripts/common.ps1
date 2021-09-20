@@ -46,9 +46,7 @@ function ConnectAzureActivityLog($workspaceName, $resourceGroupName)
     New-AzOperationalInsightsAzureActivityLogDataSource -ResourceGroupName $resourceGroupName -WorkspaceName $workspacename -Name "AzureActivityLog" -SubscriptionId $subscriptionId
 }
 
-function EnableASCAutoProvision()
-{
-    $sub = Get-AzSubscription;
+$sub = Get-AzSubscription;
 
     $subscriptionId = $sub.SubscriptionId;
 
@@ -60,12 +58,29 @@ function EnableASCAutoProvision()
     #azure dependency agent for windows
     $def3 = Get-AzPolicyDefinition -Id "/providers/Microsoft.Authorization/policyDefinitions/1c210e94-a481-4beb-95fa-1571b434fb04"
 
-    $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Linux" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def2 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
+    $location = $rg.location;
+
+    $curPolicy = Get-AzPolicyAssignment -name "ASC provisioning Dependency agent for Linux"
+
+    if ($curPolicy)
+    {
+        $location = $curPolicy.Location;
+    }
+
+    $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Linux" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def2 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $location
     $assign | Set-AzPolicyAssignment -EnforcementMode Default;
 
-    $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Windows" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def3 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
+    $location = $rg.location;
+
+    $curPolicy = Get-AzPolicyAssignment -name "ASC provisioning Dependency agent for Windows"
+
+    if ($curPolicy)
+    {
+        $location = $curPolicy.Location;
+    }
+
+    $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Windows" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def3 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $location
     $assign | Set-AzPolicyAssignment -EnforcementMode Default;
-}
 
 function EnableDefaultASCPolicy()
 {
@@ -789,6 +804,9 @@ function InstallPutty()
 {
     write-host "Installing Putty";
 
+    choco install putty
+
+    <#
     #check for executables...
 	$item = get-item "C:\Program Files\Putty\putty.exe" -ea silentlycontinue;
 	
@@ -803,6 +821,7 @@ function InstallPutty()
         
         msiexec.exe /I c:\temp\Putty.msi /quiet
 	}
+    #>
 }
 
 function Refresh-Token {
