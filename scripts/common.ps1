@@ -108,20 +108,20 @@ function EnableOtherCompliancePolicy($resourceGroupName)
 
     #NIST SP 800-53 Rev. 4
     $def1 = Get-AzPolicySetDefinition -Id "/providers/Microsoft.Authorization/policySetDefinitions/cf25b9c1-bd23-4eb6-bd2c-f4f3ac644a5f"
-    $assign = New-AzPolicyAssignment -Name "2ffdd0e7fecf480d97b9d1e6" -Description "NIST SP 800-53 Rev. 4" -PolicyDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity $rg.location
+    $assign = New-AzPolicyAssignment -Name "2ffdd0e7fecf480d97b9d1e6" -Description "NIST SP 800-53 Rev. 4" -PolicySetDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
     $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
 
     #UKO and UK NHS
     $def1 = Get-AzPolicySetDefinition -Id "/providers/Microsoft.Authorization/policySetDefinitions/3937f550-eedd-4639-9c5e-294358be442e"
-    $assign = New-AzPolicyAssignment -Name "f33c339c870a4c8f8bdab7ce" -Description "UKO and UK NHS" -PolicyDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity $rg.location
+    $assign = New-AzPolicyAssignment -Name "f33c339c870a4c8f8bdab7ce" -Description "UKO and UK NHS" -PolicySetDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
     $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
 
     #TODO - more of them...
 }
 
-function EnableSQLVulnerability($servername, $storageAccountName, $emailAddress)
+function EnableSQLVulnerability($servername, $storageAccountName, $emailAddress, $resourceGroupName)
 {
-    $rg = Get-AzResourceGroup | Where-Object { $_.ResourceGroupName -like "*-security" };
+    $rg = Get-AzResourceGroup -Name $resourceGroupName;
     
     Get-AzSqlDatabase -ResourceGroupName $rg.ResourceGroupName -ServerName $servername `
     | where {$_.DatabaseName -ne "master"}  `
