@@ -48,6 +48,10 @@ function ConnectAzureActivityLog($workspaceName, $resourceGroupName)
 
 function EnableASCAutoProvision()
 {
+    $sub = Get-AzSubscription;
+
+    $subscriptionId = $sub.SubscriptionId;
+
     Set-AzSecurityAutoProvisioningSetting -Name "default" -EnableAutoProvision
 
     #azure dependency agent for linux
@@ -56,10 +60,10 @@ function EnableASCAutoProvision()
     #azure dependency agent for windows
     $def3 = Get-AzPolicyDefinition -Id "/providers/Microsoft.Authorization/policyDefinitions/1c210e94-a481-4beb-95fa-1571b434fb04"
 
-    $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Linux" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def2 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location 'Central US' #$rg.location
+    $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Linux" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def2 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
     $assign | Set-AzPolicyAssignment -EnforcementMode Default;
 
-    $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Windows" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def3 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location 'Central US' #$rg.location
+    $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Windows" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def3 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
     $assign | Set-AzPolicyAssignment -EnforcementMode Default;
 }
 
@@ -141,9 +145,9 @@ function EnableVMVulnerability()
     }
 }
 
-function SetLogAnalyticsAgentConfig($workspaceName, $resouceGroupName)
+function SetLogAnalyticsAgentConfig($workspaceName, $resourceGroupName)
 {
-    $rg = Get-AzResourceGroup -Name $resouceGroupName
+    $rg = Get-AzResourceGroup -Name $resourceGroupName
 
     #get the workspace Id
     $ws = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroup $rg.ResourceGroupName;
@@ -185,11 +189,11 @@ function SetLogAnalyticsAgentConfig($workspaceName, $resouceGroupName)
     }
 }
 
-function DeployAllSolutions($workspaceName)
+function DeployAllSolutions($workspaceName, $resourceGroupName)
 {
     Install-Module -Name Az.MonitoringSolutions -Force 
     
-    $rg = Get-AzResourceGroup | Where-Object { $_.ResourceGroupName -like "*-security" };
+    $rg = Get-AzResourceGroup -Name $resourceGroupName
 
     #get the workspace Id
     $ws = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroup $rg.ResourceGroupName;
@@ -1020,18 +1024,18 @@ function InstallDocker()
 
 function InstallDockerCompose()
 {
-    choco install docker-compose
+    choco install docker-compose --ignoredetectedreboot --force
 }
 
 function InstallTor()
 {
-    choco install tor
-    choco install tor-browser
+    choco install tor --ignoredetectedreboot --force
+    choco install tor-browser --ignoredetectedreboot --force
 }
 
 function InstallPowerBI()
 {
-    choco install powerbi
+    choco install powerbi --ignoredetectedreboot --force
 }
 
 function InstallDockerWin10()
