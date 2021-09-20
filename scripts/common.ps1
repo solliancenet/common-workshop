@@ -46,7 +46,9 @@ function ConnectAzureActivityLog($workspaceName, $resourceGroupName)
     New-AzOperationalInsightsAzureActivityLogDataSource -ResourceGroupName $resourceGroupName -WorkspaceName $workspacename -Name "AzureActivityLog" -SubscriptionId $subscriptionId
 }
 
-$sub = Get-AzSubscription;
+function EnableASCAutoProvision()
+{
+    $sub = Get-AzSubscription;
 
     $subscriptionId = $sub.SubscriptionId;
 
@@ -81,6 +83,7 @@ $sub = Get-AzSubscription;
 
     $assign = New-AzPolicyAssignment -Name "ASC provisioning Dependency agent for Windows" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def3 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $location
     $assign | Set-AzPolicyAssignment -EnforcementMode Default;
+}
 
 function EnableDefaultASCPolicy()
 {
