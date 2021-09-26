@@ -1654,7 +1654,7 @@ function UploadFileToOneDrive($filePath, $targetPath)
 {
     $fi = new-object system.io.fileinfo($filepath);
 
-    $bytes = [System.Io.File]::ReadAllBytes($path);
+    $bytes = [System.Io.File]::ReadAllBytes($filePath);
 
     # Make the first request to get flowToken
     $headers = @{"Authorization" = "Bearer $global:oneDriveToken"};
