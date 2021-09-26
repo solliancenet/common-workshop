@@ -1615,3 +1615,51 @@ function RerunInstall($scriptPath)
     #call the script
     powershell.exe -FilePath $scriptpath;
 }
+
+function LoginOnedrive()
+{
+    #client id reference - https://github.com/Gerenios/AADInternals/blob/master/AccessToken_utils.ps1
+    $clientId = "d3590ed6-52b3-4102-aeff-aad2292ab01c"; #office
+
+    $subscriptionId = (Get-AzContext).Subscription.Id
+    $tenantId = (Get-AzContext).Tenant.Id;
+    $global:logindomain = (Get-AzContext).Tenant.Id;
+
+    #$resource = "urn:ms-drs:enterpriseregistration.windows.net";
+    $resource = "https://graph.microsoft.com/.default";
+
+    $ropcBodyCore = "client_id=$($clientId)&username=$($userName)&password=$($password)&grant_type=password"
+    $global:ropcBodySynapse = "$($ropcBodyCore)&scope=$resource"
+
+    $result = Invoke-RestMethod  -Uri "https://login.microsoftonline.com/$($global:logindomain)/oauth2/v2.0/token" -Method POST -Body $global:ropcBodySynapse -ContentType "application/x-www-form-urlencoded"
+
+    $global:oneDriveToken = $result.access_token;
+}
+
+function UploadFolderToOnedrive($folderPath, $targetPath)
+{
+    LoginOnedrive;
+
+    $di = new-object system.io.directoryinfo($folderPath);
+
+    $files = $di.GetFiles();
+
+    foreach($fi in $files)
+    {
+        UploadFileToOneDrive $fi.FullName $targetPath;
+    }
+}
+
+function UploadFileToOneDrive($filePath, $targetPath)
+{
+    $fi = new-object system.io.fileinfo($filepath);
+
+    $bytes = [System.Io.File]::ReadAllBytes($path);
+
+    # Make the first request to get flowToken
+    $headers = @{"Authorization" = "Bearer $global:oneDriveToken"};
+
+    $result = Invoke-RestMethod  -Uri "https://graph.microsoft.com/v1.0/me/drive/root:/$($fi.Name):/content" -Method PUT -Body $bytes -ContentType "application/octet-stream" -Headers $headers;
+
+    $result;
+}
