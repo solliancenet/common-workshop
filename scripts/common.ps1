@@ -228,7 +228,7 @@ function DeployAllSolutions($workspaceName, $resourceGroupName)
 
 }
 
-function EnableJIT($resourceGroupName)
+function EnableJIT($resourceGroupName, $excludeVms)
 {
     $sub = Get-AzSubscription;
 
@@ -240,6 +240,10 @@ function EnableJIT($resourceGroupName)
 
     foreach($vm in $vms)
     {
+        if ($excludeVms -contains $vm.Name)
+        {
+            continue;
+        }
 
         $JitPolicy = (@{ id="/subscriptions/$subscriptionId/resourceGroups/$($rg.ResourceGroupName)/providers/Microsoft.Compute/virtualMachines/$($vm.Name)"
     ports=(@{
@@ -1188,6 +1192,15 @@ function InstallFiddler()
   InstallChocolaty;
 
   choco install fiddler --ignoredetectedreboot --force
+}
+
+function InstallPython()
+{
+    write-host "Installing Fiddler";
+
+    InstallChocolaty;
+
+    choco install python --ignoredetectedreboot --force
 }
 
 function InstallPorter()
