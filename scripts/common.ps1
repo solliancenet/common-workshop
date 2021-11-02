@@ -11,14 +11,16 @@ functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=
 {
     Write-Host "Waiting for $resourceName of type $resourceType to be created. [$maxTime]" -ForegroundColor Green -Verbose
 
-    $res = Get-AzResource -ResourceGroupName $resourceGroup -Name $resourceName -ResourceType $resourceType;
+    $res = Get-AzResource -ResourceGroupName $resourceGroup -Name $resourceName -ResourceType $resourceType -ea SilentlyContinue;
 
     $time = 0;
 
     if (!$res -and $time -lt $maxTime)
     {
-        start-sleep 10;
-        $time+=10;
+        start-sleep -s 10;
+        $time += 10;
+
+        $res = Get-AzResource -ResourceGroupName $resourceGroup -Name $resourceName -ResourceType $resourceType -ea SilentlyContinue;
     }
 
     if ($res)
@@ -1614,6 +1616,14 @@ function InstallAzPowerShellModule
 {
     write-host "Installing Azure PowerShell";
 
+    $m = get-module -ListAvailable -name Az.Accounts
+
+    if (!$m)
+    {
+        choco install az.powershell
+    }
+
+    <#
     $pp = Get-PackageProvider -Name NuGet -Force
     
     Set-PSRepository PSGallery -InstallationPolicy Trusted
@@ -1624,6 +1634,7 @@ function InstallAzPowerShellModule
     {
         Install-Module Az -Repository PSGallery -Force -AllowClobber
     }
+    #>
 }
 
 function InstallAzPowerShellModuleMSI
