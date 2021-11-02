@@ -15,6 +15,11 @@ functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=
         start-sleep 10;
         $time+=10;
     }
+
+    if ($res)
+    {
+        Write-host "Found $resourceName of $resourceType";
+    }
 }
 
 function ExecuteDeployment($templatePath, $parameterPath, $resourceGroupName)
