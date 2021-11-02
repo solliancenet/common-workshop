@@ -2,6 +2,11 @@
 COPYRIGHT SOLLIANCE / CHRIS GIVENS
 #>
 
+function PreventFirstRunPage()
+{
+    reg add "HKLM\Software\Policies\Microsoft\MicrosoftEdge\Main" /v PreventFirstRunPage /t REG_DWORD /d 1 /f
+}
+
 function EnableDarkMode()
 {
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 0 -ea SilentlyContinue;
@@ -9,9 +14,9 @@ function EnableDarkMode()
 
 functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=2500)
 {
-    Write-Host "Waiting for $resourceName of type $resourceType to be created. [$maxTime]" -ForegroundColor Green -Verbose
+    Write-Host "Waiting for [$resourceName] of type [$resourceType] to be created. [$maxTime]" -ForegroundColor Green -Verbose
 
-    $res = Get-AzResource -ResourceGroupName $resourceGroup -Name $resourceName -ResourceType $resourceType -ea SilentlyContinue;
+    $res = Get-AzResource -Name $resourceName -ResourceType $resourceType -ea SilentlyContinue;
 
     $time = 0;
 
@@ -28,7 +33,7 @@ functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=
 
     if ($res)
     {
-        Write-host "Found $resourceName of $resourceType";
+        Write-host "Found [$resourceName] of [$resourceType]";
     }
 }
 
