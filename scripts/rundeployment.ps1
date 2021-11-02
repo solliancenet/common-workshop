@@ -12,7 +12,10 @@ Param (
   $resourceGroupName
 )
 
+Start-Transcript -Path C:\WindowsAzure\Logs\CloudLabsCustomScriptExtension-subdeploy.txt -Append
 
 New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
   -TemplateFile $templateFile `
   -TemplateParameterFile "$($parametersFile)"
+
+Stop-Transcript
