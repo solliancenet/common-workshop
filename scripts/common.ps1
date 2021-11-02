@@ -7,7 +7,7 @@ function EnableDarkMode()
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 0 -ea SilentlyContinue;
 }
 
-functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=5000)
+functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=2500)
 {
     Write-Host "Waiting for $resourceName of type $resourceType to be created. [$maxTime]" -ForegroundColor Green -Verbose
 
@@ -21,7 +21,7 @@ functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=
         
         $time += 10;
 
-        $res = Get-AzResource -ResourceGroupName $resourceGroup -Name $resourceName -ResourceType $resourceType -ea SilentlyContinue;
+        $res = Get-AzResource -Name $resourceName -ResourceType $resourceType -ea SilentlyContinue;
 
         Write-Host "Waiting for [$time] seconds";
     }
