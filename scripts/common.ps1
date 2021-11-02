@@ -15,9 +15,10 @@ functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=
 
     $time = 0;
 
-    if (!$res -and $time -lt $maxTime)
+    while (!$res -and $time -lt $maxTime)
     {
         start-sleep -s 10;
+        
         $time += 10;
 
         $res = Get-AzResource -ResourceGroupName $resourceGroup -Name $resourceName -ResourceType $resourceType -ea SilentlyContinue;
