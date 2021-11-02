@@ -2,6 +2,11 @@
 COPYRIGHT SOLLIANCE / CHRIS GIVENS
 #>
 
+function EnableDarkMode()
+{
+    Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 0 -ea SilentlyContinue;
+}
+
 functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=1000)
 {
     Write-Host "Waiting for $resourceName of type $resourceType to be created. [$maxTime]" -ForegroundColor Green -Verbose
