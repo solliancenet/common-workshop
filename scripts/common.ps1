@@ -2,6 +2,58 @@
 COPYRIGHT SOLLIANCE / CHRIS GIVENS
 #>
 
+functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=1000)
+{
+    Write-Host "Waiting for $resourceName of type $resourceType to be created. [$maxTime]" -ForegroundColor Green -Verbose
+
+    $res = Get-AzResource -ResourceGroupName $resourceGroup -Name $resourceName -ResourceType $resourceType;
+
+    $time = 0;
+
+    if (!$res -and $time -lt $maxTime)
+    {
+        start-sleep 10;
+        $time+=10;
+    }
+}
+
+function ExecuteDeployment($templatePath, $parameterPath, $resourceGroupName)
+{
+    Write-Host "Executing Async Deployment [$templatePath]" -ForegroundColor Green -Verbose
+
+    start-process powershell -argument "C:\labfiles\rundeployment.ps1 -templateFile $templatePath -parametersFile $parameterPath -resourceGroupName $resourceGroupName";
+}
+
+function Login-AzureCredsPowerShell()
+{
+    . C:\LabFiles\AzureCreds.ps1
+
+    $userName = $AzureUserName                # READ FROM FILE
+    $password = $AzurePassword                # READ FROM FILE
+    $clientId = $TokenGeneratorClientId       # READ FROM FILE
+    $global:sqlPassword = $AzureSQLPassword          # READ FROM FILE
+
+    $securePassword = $password | ConvertTo-SecureString -AsPlainText -Force
+    $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist $userName, $SecurePassword
+
+    Connect-AzAccount -Credential $cred | Out-Null
+}
+
+function Login-AzureCredsCLI()
+{
+    . C:\LabFiles\AzureCreds.ps1
+
+    $userName = $AzureUserName                # READ FROM FILE
+    $password = $AzurePassword                # READ FROM FILE
+    $clientId = $TokenGeneratorClientId       # READ FROM FILE
+    $global:sqlPassword = $AzureSQLPassword          # READ FROM FILE
+
+    $securePassword = $password | ConvertTo-SecureString -AsPlainText -Force
+    $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist $userName, $SecurePassword
+
+    az login -u $userName -p $password;
+}
+
 function InitSetup()
 {
     #all things that are common
