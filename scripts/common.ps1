@@ -9,6 +9,8 @@ function PreventFirstRunPage()
 
 function EnableDarkMode()
 {
+    write-host "Enabling darkmode";
+
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 0 -ea SilentlyContinue;
 }
 
@@ -95,6 +97,8 @@ function Finalize()
 
 function EnableAzureDefender()
 {
+    write-host "Enabling Azure Defender";
+
     Register-AzResourceProvider -ProviderNamespace 'Microsoft.Security'
 
     Get-AzSecurityPricing | Select-Object Name, PricingTier
@@ -111,6 +115,8 @@ function EnableAzureDefender()
 
 function ConnectAzureActivityLog($workspaceName, $resourceGroupName)
 {
+    write-host "Enabling Azure Activity Log to [$workspace]";
+
     $sub = Get-AzSubscription;
 
     $subscriptionId = $sub.SubscriptionId;
@@ -120,6 +126,8 @@ function ConnectAzureActivityLog($workspaceName, $resourceGroupName)
 
 function EnableASCAutoProvision()
 {
+    write-host "Enabling ASC Provisioining";
+
     $sub = Get-AzSubscription;
 
     $subscriptionId = $sub.SubscriptionId;
@@ -159,6 +167,8 @@ function EnableASCAutoProvision()
 
 function EnableDefaultASCPolicy()
 {
+    write-host "Enabling ASC Default Policy";
+
     #get subscription id
     $sub = Get-AzSubscription;
 
@@ -173,6 +183,8 @@ function EnableDefaultASCPolicy()
 
 function EnableAKSPolicy($resourceGroupName)
 {
+    write-host "Enabling AKS Policy";
+
     $sub = Get-AzSubscription;
 
     $subscriptionId = $sub.SubscriptionId;
@@ -190,6 +202,8 @@ function EnableAKSPolicy($resourceGroupName)
 
 function EnableOtherCompliancePolicy($resourceGroupName)
 {
+    write-host "Enabling Other Policies";
+
     $sub = Get-AzSubscription;
 
     $subscriptionId = $sub.SubscriptionId;
@@ -211,6 +225,8 @@ function EnableOtherCompliancePolicy($resourceGroupName)
 
 function EnableSQLVulnerability($servername, $storageAccountName, $emailAddress, $resourceGroupName)
 {
+    write-host "Enabling SQL Vulnerabilities";
+
     $rg = Get-AzResourceGroup -Name $resourceGroupName;
     
     Get-AzSqlDatabase -ResourceGroupName $rg.ResourceGroupName -ServerName $servername `
@@ -225,6 +241,8 @@ function EnableSQLVulnerability($servername, $storageAccountName, $emailAddress,
 
 function EnableVMVulnerability()
 {
+    write-host "Enabling VM Vulnerabilities";
+
     #get all vms
     $vms = Get-AzVM
 
@@ -281,6 +299,8 @@ function SetLogAnalyticsAgentConfig($workspaceName, $resourceGroupName)
 
 function DeployAllSolutions($workspaceName, $resourceGroupName)
 {
+    write-host "Deploying all solutions";
+
     Install-Module -Name Az.MonitoringSolutions -Force 
     
     $rg = Get-AzResourceGroup -Name $resourceGroupName
@@ -295,6 +315,8 @@ function DeployAllSolutions($workspaceName, $resourceGroupName)
 
     foreach($sol in $solutions)
     {
+        write-host "Deploying solution [$sol]";
+
         New-AzMonitorLogAnalyticsSolution -Type $sol -ResourceGroupName $rg.ResourceGroupName -Location $ws.Location -WorkspaceResourceId $ws.ResourceId
     }
 
@@ -302,6 +324,8 @@ function DeployAllSolutions($workspaceName, $resourceGroupName)
 
 function EnableJIT($resourceGroupName, $excludeVms)
 {
+    write-host "Enabling JIT";
+
     $sub = Get-AzSubscription;
 
     $subscriptionId = $sub.SubscriptionId;
@@ -316,6 +340,8 @@ function EnableJIT($resourceGroupName, $excludeVms)
         {
             continue;
         }
+
+        write-host "Enabling JIT on $vm";
 
         $JitPolicy = (@{ id="/subscriptions/$subscriptionId/resourceGroups/$($rg.ResourceGroupName)/providers/Microsoft.Compute/virtualMachines/$($vm.Name)"
     ports=(@{
