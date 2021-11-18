@@ -1120,6 +1120,13 @@ function InstallDocker()
     Install-Package -Name docker -ProviderName DockerMsftProvider -force;
 }
 
+function InstallDockerDesktop()
+{
+    write-host "Installing Docker Desktop";
+
+    choco install docker-desktop --ignoredetectedreboot --force
+}
+
 function InstallDockerCompose()
 {
     choco install docker-compose --ignoredetectedreboot --force
