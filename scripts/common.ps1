@@ -1407,7 +1407,7 @@ function InstallDotNetCore($version)
     }
 }
 
-function InstallDockerDesktop()
+function InstallDockerDesktop($localusername)
 {
     write-host "Installing Docker Desktop";
 
@@ -1674,10 +1674,14 @@ function InstallAzureCli()
 {
   Write-Host "Install Azure CLI." -ForegroundColor Yellow
 
+  choco install azure-cli  -y --ignoredetectedreboot
+
+  <#
   #install azure cli
   Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; 
   Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; 
   rm .\AzureCLI.msi
+  #>
 }
 
 function InstallChocolaty()
