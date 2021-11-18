@@ -136,7 +136,7 @@ function EnableASCWorkspace($workspaceName)
     }
 }
 
-function EnableSolutionViaRest($name, $workspaceName)
+function EnableSolutionViaRest($name, $workspaceName, $location)
 {
     $post = @{};
     $post.location = $ws.Location;
@@ -162,48 +162,57 @@ function EnableASCAutoProvision()
 
     $subscriptionId = $sub.SubscriptionId;
 
-    Set-AzSecurityAutoProvisioningSetting -Name "default" -EnableAutoProvision
+    $rg = Get-AzResourceGroup -Name $resourceGroupName
+    $location = $rg.location;
 
+    Set-AzSecurityAutoProvisioningSetting -Name "default" -EnableAutoProvision
+    
     $desc = "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning."
 
     #azure dependency agent for linux
-    AssignPolicy "ASC provisioning Dependency agent for Linux" $desc "4da21710-ce6f-4e06-8cdb-5cc4c93ffbee" "/subscriptions/$SubscriptionId"    
+    AssignPolicy "ASC provisioning Dependency agent for Linux" $desc "4da21710-ce6f-4e06-8cdb-5cc4c93ffbee" "/subscriptions/$SubscriptionId" $location
 
     #ASC provisioning Dependency agent for Windows
-    AssignPolicy "ASC provisioning Dependency agent for Windows" $desc "1c210e94-a481-4beb-95fa-1571b434fb04" "/subscriptions/$SubscriptionId"    
+    AssignPolicy "ASC provisioning Dependency agent for Windows" $desc "1c210e94-a481-4beb-95fa-1571b434fb04" "/subscriptions/$SubscriptionId" $location
 
     #ASC provisioning LA agent Linux Arc
-    AssignPolicy "ASC provisioning LA agent Linux Arc" $desc "9d2b61b4-1d14-4a63-be30-d4498e7ad2cf" "/subscriptions/$SubscriptionId"    
+    AssignPolicy "ASC provisioning LA agent Linux Arc" $desc "9d2b61b4-1d14-4a63-be30-d4498e7ad2cf" "/subscriptions/$SubscriptionId" $location
 
     #ASC auto provisioning of vulnerability assessment agent for machines
-    AssignPolicy "ASC auto provisioning of vulnerability assessment agent for mac" $desc "13ce0167-8ca6-4048-8e6b-f996402e3c1b" "/subscriptions/$SubscriptionId"    
+    AssignPolicy "ASC auto provisioning of vulnerability assessment agent for mac" $desc "13ce0167-8ca6-4048-8e6b-f996402e3c1b" "/subscriptions/$SubscriptionId" $location
 
     #ASC provisioning machines with no MI for GC agent
-    AssignPolicy "ASC provisioning machines with no MI for GC agent" $desc "3cf2ab00-13f1-4d0c-8971-2ac904541a7e" "/subscriptions/$SubscriptionId"    
+    AssignPolicy "ASC provisioning machines with no MI for GC agent" $desc "3cf2ab00-13f1-4d0c-8971-2ac904541a7e" "/subscriptions/$SubscriptionId" $location
 
     #ASC provisioning Guest Configuration agent for Linux
-    AssignPolicy "ASC provisioning Guest Configuration agent for Linux" $desc "331e8ea8-378a-410f-a2e5-ae22f38bb0da" "/subscriptions/$SubscriptionId"    
+    AssignPolicy "ASC provisioning Guest Configuration agent for Linux" $desc "331e8ea8-378a-410f-a2e5-ae22f38bb0da" "/subscriptions/$SubscriptionId" $location
 
     #ASC provisioning machines with user assigned MI for GC agent
-    AssignPolicy "ASC provisioning machines with user assigned MI for GC agent" $desc "497dff13-db2a-4c0f-8603-28fa3b331ab6" "/subscriptions/$SubscriptionId"    
+    AssignPolicy "ASC provisioning machines with user assigned MI for GC agent" $desc "497dff13-db2a-4c0f-8603-28fa3b331ab6" "/subscriptions/$SubscriptionId" $location  
 
     #ASC provisioning Guest Configuration agent for Windows
-    AssignPolicy "ASC provisioning Guest Configuration agent for Windows" $desc "385f5831-96d4-41db-9a3c-cd3af78aaae6" "/subscriptions/$SubscriptionId"    
+    AssignPolicy "ASC provisioning Guest Configuration agent for Windows" $desc "385f5831-96d4-41db-9a3c-cd3af78aaae6" "/subscriptions/$SubscriptionId" $location
 }
 
-function AssignPolicy($name, $description, $defId, $scope)
+function AssignPolicy($name, $description, $defId, $scope, $location)
 {
-    $def = Get-AzPolicyDefinition -Id "/providers/Microsoft.Authorization/policyDefinitions/$defId"
+    write-host "Creating Policy Assignment [$name]";
+
+    $def = Get-AzPolicyDefinition -Id "/providers/Microsoft.Authorization/policyDefinitions/$defId" -ErrorAction SilentlyContinue;
     
-    $curPolicy = Get-AzPolicyAssignment -name $name
+    #it might already exist...
+    $curPolicy = Get-AzPolicyAssignment -name $name -ea SilentlyContinue;
 
     if ($curPolicy)
     {
         $location = $curPolicy.Location;
+        $curPolicy | Set-AzPolicyAssignment -EnforcementMode Default;    
     }
-
-    $assign = New-AzPolicyAssignment -Name $name -Description $description -PolicyDefinition $def -Scope $scope -AssignIdentity -Location $location
-    $assign | Set-AzPolicyAssignment -EnforcementMode Default;
+    else 
+    {
+        $assign = New-AzPolicyAssignment -Name $name -Description $description -PolicyDefinition $def -Scope $scope -AssignIdentity -Location $location
+        $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+    }
 }
 
 function EnableDefaultASCPolicy()
