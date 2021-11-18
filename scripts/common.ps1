@@ -154,7 +154,7 @@ function EnableSolutionViaRest($name, $workspaceName, $location)
     $res = Invoke-AzRestMethod -Path $url -Method PUT -body $post;
 }
 
-function EnableASCAutoProvision()
+function EnableASCAutoProvision($resourceName)
 {
     write-host "Enabling ASC Autoprovisioining";
 
@@ -176,7 +176,18 @@ function EnableASCAutoProvision()
     AssignPolicy "ASC provisioning Dependency agent for Windows" $desc "1c210e94-a481-4beb-95fa-1571b434fb04" "/subscriptions/$SubscriptionId" $location
 
     #ASC provisioning LA agent Linux Arc
-    AssignPolicy "ASC provisioning LA agent Linux Arc" $desc "9d2b61b4-1d14-4a63-be30-d4498e7ad2cf" "/subscriptions/$SubscriptionId" $location
+    $parameters = @{"logAnalytics"="$resourceName"}
+    $assign = AssignPolicy "ASC provisioning LA agent Linux Arc" $desc "9d2b61b4-1d14-4a63-be30-d4498e7ad2cf" "/subscriptions/$SubscriptionId" $location $parameters;
+
+    #set role assignment
+    CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
+
+    #ASC provisioning LA agent Windows Arc
+    $parameters = @{"logAnalytics"="$resourceName"}
+    $assign = AssignPolicy "ASC provisioning LA agent Windows Arc" $desc "69af7d4a-7b18-4044-93a9-2651498ef203" "/subscriptions/$SubscriptionId" $location $parameters;
+
+    #set role assignment
+    CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
 
     #ASC auto provisioning of vulnerability assessment agent for machines
     AssignPolicy "ASC auto provisioning of vulnerability assessment agent for mac" $desc "13ce0167-8ca6-4048-8e6b-f996402e3c1b" "/subscriptions/$SubscriptionId" $location
@@ -194,7 +205,25 @@ function EnableASCAutoProvision()
     AssignPolicy "ASC provisioning Guest Configuration agent for Windows" $desc "385f5831-96d4-41db-9a3c-cd3af78aaae6" "/subscriptions/$SubscriptionId" $location
 }
 
-function AssignPolicy($name, $description, $defId, $scope, $location)
+function CreateRoleAssignment($roleDefId, $principalId, $principalType)
+{
+    $assignmentId = [Guid]::NewGuid();
+
+    $post = @{};
+    $post.properties = @{};
+    $post.properties.principalId = $principalId;
+    $post.properties.principalType = $pricipalType;
+    $post.properties.roleDefinitionId = "/providers/Microsoft.Authorization/roleDefinitions/$roleDefId";
+
+    #do the PUT
+    $url = "https://management.azure.com/subscriptions/$subscription/resourceGroups/$resourceGroupName/providers/Microsoft.Authorization/roleAssignments/$assignmentId?api-version=2019-04-01-preview";
+
+    $res = Invoke-AzRestMethod -Path $url -Method PUT -body $post;
+
+    return $res;
+}
+
+function AssignPolicy($name, $description, $defId, $scope, $location, $parameters)
 {
     write-host "Creating Policy Assignment [$name]";
 
@@ -210,8 +239,18 @@ function AssignPolicy($name, $description, $defId, $scope, $location)
     }
     else 
     {
-        $assign = New-AzPolicyAssignment -Name $name -Description $description -PolicyDefinition $def -Scope $scope -AssignIdentity -Location $location
+        if ($parameters)
+        {
+            $assign = New-AzPolicyAssignment -Name $name -Description $description -PolicyDefinition $def -Scope $scope -AssignIdentity -Location $location -PolicyParameterObject $parameters;
+        }
+        else 
+        {
+            $assign = New-AzPolicyAssignment -Name $name -Description $description -PolicyDefinition $def -Scope $scope -AssignIdentity -Location $location
+        }
+
         $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+
+        return $assign;
     }
 }
 
@@ -1193,13 +1232,6 @@ function InstallDocker()
     Install-Package -Name docker -ProviderName DockerMsftProvider -force;
 }
 
-function InstallDockerDesktop()
-{
-    write-host "Installing Docker Desktop";
-
-    choco install docker-desktop --ignoredetectedreboot --force
-}
-
 function InstallDockerCompose()
 {
     choco install docker-compose --ignoredetectedreboot --force
@@ -1408,6 +1440,15 @@ function InstallDotNetCore($version)
 }
 
 function InstallDockerDesktop($localusername)
+{
+    write-host "Installing Docker Desktop";
+
+    choco install docker-desktop --ignoredetectedreboot --force
+
+    Add-LocalGroupMember -Group "docker-users" -Member $localusername;
+}
+
+function InstallDockerDesktopOld($localusername)
 {
     write-host "Installing Docker Desktop";
 
