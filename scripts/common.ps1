@@ -17,7 +17,7 @@ function EnableDarkMode()
 function EnableContinousExport($workshopName)
 {
     write-host "Enabling Continous Export with EventHub";
-    
+
     $sub = Get-AzSubscription;
 
     $subscriptionId = $sub.SubscriptionId;
@@ -25,10 +25,14 @@ function EnableContinousExport($workshopName)
     $rg = Get-AzResourceGroup -Name $resourceGroupName;
     $location = $rg.location;
 
+    $user = Get-AzADUser -UserPrincipalName $userName;
+    $principalId = $user.id;
+
     #ename continous export
     $url = "https://management.azure.com/subscriptions/$subscriptionId/resourcegroups/$resourceGroupName/providers/Microsoft.Security/automations/exportToEventHub?api-version=2019-01-01-preview";
     
-    $connString = Get-AzEventHubKey -ResourceGroupName $resourceGroupName -NamespaceName $resourceName -AuthorizationRuleName All;
+    $key = Get-AzEventHubKey -ResourceGroupName $resourceGroupName -NamespaceName $resourceName -AuthorizationRuleName All;
+    $connString = $key.primaryConnectionString;
 
     $content = get-content "c:\labfiles\$workshopName\artifacts\environment-setup\automation\enableContinousExport.json" -raw;
 
@@ -40,7 +44,13 @@ function EnableContinousExport($workshopName)
     $content = $content | ForEach-Object {$_ -Replace "{RESOURCE_NAME}", "$resourceName"};
     $content = $content | ForEach-Object {$_ -Replace "{PRINCIPAL_ID}", "$principalId"};
 
-    $res = Invoke-AzRestMethod -Path $url -Method PUT -body $content;
+    #get a bearer token for api call...
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $res = Invoke-RestMethod -uri $url -Method PUT -Body $content -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+
+    #$res = Invoke-AzRestMethod -Path $url -Method PUT -body $content;
 }
 
 functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=2500)
