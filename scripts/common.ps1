@@ -14,6 +14,35 @@ function EnableDarkMode()
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 0 -ea SilentlyContinue;
 }
 
+function EnableContinousExport($workshopName)
+{
+    write-host "Enabling Continous Export with EventHub";
+    
+    $sub = Get-AzSubscription;
+
+    $subscriptionId = $sub.SubscriptionId;
+
+    $rg = Get-AzResourceGroup -Name $resourceGroupName;
+    $location = $rg.location;
+
+    #ename continous export
+    $url = "https://management.azure.com/subscriptions/$subscriptionId/resourcegroups/$resourceGroupName/providers/Microsoft.Security/automations/exportToEventHub?api-version=2019-01-01-preview";
+    
+    $connString = Get-AzEventHubKey -ResourceGroupName $resourceGroupName -NamespaceName $resourceName -AuthorizationRuleName All;
+
+    $content = get-content "c:\labfiles\$workshopName\artifacts\environment-setup\automation\enableContinousExport.json" -raw;
+
+    #replace the values...
+    $content = $content | ForEach-Object {$_ -Replace "{SUBSCRIPTION_ID}", "$subscriptionId"};
+    $content = $content | ForEach-Object {$_ -Replace "{RESOURCE_GROUP_NAME}", "$resourceGroupName"};
+    $content = $content | ForEach-Object {$_ -Replace "{LOCATION}", "$location"};
+    $content = $content | ForEach-Object {$_ -Replace "{EVENT_HUB_CONNECTIONSTRING}", "$connString"};
+    $content = $content | ForEach-Object {$_ -Replace "{RESOURCE_NAME}", "$resourceName"};
+    $content = $content | ForEach-Object {$_ -Replace "{PRINCIPAL_ID}", "$principalId"};
+
+    $res = Invoke-AzRestMethod -Path $url -Method PUT -body $content;
+}
+
 functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=2500)
 {
     Write-Host "Waiting for [$resourceName] of type [$resourceType] to be created. [$maxTime]" -ForegroundColor Green -Verbose
@@ -397,7 +426,7 @@ function DeployAllSolutions($workspaceName, $resourceGroupName)
     #get the workspace Id
     $ws = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroup $rg.ResourceGroupName;
     
-    $solutions = @("SecurityCenterFree", "Security", "Updates", "ContainerInsights", "ServiceMap", "AzureActivity", "ChangeTracking", "VMInsights", "SecurityInsights", "NetworkMonitoring", "SQLVulnerabilityAssessment", "SQLAdvancedThreatProtection", "AntiMalware", "AzureAutomation", "LogicAppsManagement", "SQLDataClassification");
+    $solutions = @("SecurityCenterFree", "Security", "Updates", "ContainerInsights", "ServiceMap", "AzureActivity", "ChangeTracking", "VMInsights", "SecurityInsights", "NetworkMonitoring", "SQLVulnerabilityAssessment", "SQLAdvancedThreatProtection", "AntiMalware", "AzureAutomation", "LogicAppsManagement"); #, "SQLDataClassification"
 
     foreach($sol in $solutions)
     {
