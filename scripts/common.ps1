@@ -257,7 +257,12 @@ function CreateRoleAssignment($roleDefId, $principalId, $principalType)
     #do the PUT
     $url = "https://management.azure.com/subscriptions/$subscription/resourceGroups/$resourceGroupName/providers/Microsoft.Authorization/roleAssignments/$assignmentId?api-version=2019-04-01-preview";
 
-    $res = Invoke-AzRestMethod -Path $url -Method PUT -body $post;
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+
+    #$res = Invoke-AzRestMethod -Path $url -Method PUT -body $post;
 
     return $res;
 }
@@ -429,6 +434,10 @@ function DeployAllSolutions($workspaceName, $resourceGroupName)
 {
     write-host "Deploying all solutions";
 
+    write-host "Installing NuGet Pacakage Provider";
+    Install-PackageProvider -Name NuGet -force
+
+    write-host "Installing Az.MonitoringSolutions";
     Install-Module -Name Az.MonitoringSolutions -Force 
     
     $rg = Get-AzResourceGroup -Name $resourceGroupName
