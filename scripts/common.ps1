@@ -12,8 +12,6 @@ function EnableDarkMode()
     write-host "Enabling darkmode";
 
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 0 -ea SilentlyContinue;
-
-
 }
 
 function SetFileOptions()
@@ -22,8 +20,10 @@ function SetFileOptions()
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "Hidden" -Value 0 -ea SilentlyContinue;
 }
 
-function SetupSplunk()
+function SetupSplunk($workshopName)
 {
+    write-host "Setting up Splunk";
+
     splunk stop
 
     #cope the file...
@@ -1300,17 +1300,23 @@ function InstallDocker()
 
 function InstallDockerCompose()
 {
+    write-host "Installing Docker Compose";
+
     choco install docker-compose --ignoredetectedreboot --force
 }
 
 function InstallTor()
 {
+    write-host "Installing Tor";
+
     choco install tor --ignoredetectedreboot --force
     choco install tor-browser --ignoredetectedreboot --force
 }
 
 function InstallPowerBI()
 {
+    write-host "Installing PowerBI";
+
     choco install powerbi --ignoredetectedreboot --force
 }
 
@@ -1415,6 +1421,8 @@ function InstallOffice()
 {
     InstallChocolaty;
 
+    write-host "Installing Office";
+
     choco install microsoft-office-deployment --ignoredetectedreboot --force
 }
 
@@ -1426,6 +1434,8 @@ function InstallEdge()
 
 function InstallMySQL()
 {
+    write-host "Installing MySQL";
+
     choco install mysql --ignoredetectedreboot --force
 }
 
