@@ -1417,6 +1417,20 @@ function InstallUbuntu()
     #start-process $installCommand;
 }
 
+function InstallPhp
+{
+    write-host "Installing Php";
+
+    choco install php --ignoredetectedreboot --force
+}
+
+function InstallIIS
+{
+    write-host "Installing IIS";
+
+    Install-WindowsFeature -Name Web-Server -IncludeAllSubFeature
+}
+
 function InstallOffice()
 {
     InstallChocolaty;
@@ -1438,6 +1452,14 @@ function InstallMySQL()
 
     choco install mysql --ignoredetectedreboot --force
 }
+
+function InstallMySQLWorkbench()
+{
+    write-host "Installing MySQL workbench";
+
+    choco install mysql.workbench --ignoredetectedreboot --force
+}
+
 
 function InstallChrome()
 {
