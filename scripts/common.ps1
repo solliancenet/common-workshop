@@ -12,6 +12,24 @@ function EnableDarkMode()
     write-host "Enabling darkmode";
 
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 0 -ea SilentlyContinue;
+
+
+}
+
+function SetFileOptions()
+{
+    Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "HideFileExt" -Value 0 -ea SilentlyContinue;
+    Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "Hidden" -Value 0 -ea SilentlyContinue;
+}
+
+function SetupSplunk()
+{
+    splunk stop
+
+    #cope the file...
+    Copy-Item "user-seed.conf" "C:\Program Files\Splunk\etc\system\local\user-seed.conf"
+    
+    splunk start
 }
 
 function EnableContinousExport($workshopName)
@@ -1406,6 +1424,11 @@ function InstallEdge()
     Get-AppXPackage -AllUsers -Name Microsoft.MicrosoftEdge | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml" -Verbose}
 }
 
+function InstallMySQL()
+{
+    choco install mysql --ignoredetectedreboot --force
+}
+
 function InstallChrome()
 {
     write-host "Installing Chrome";
@@ -1428,7 +1451,7 @@ function InstallFiddler()
 
 function InstallPython()
 {
-    write-host "Installing Fiddler";
+    write-host "Installing Python";
 
     InstallChocolaty;
 
@@ -1437,7 +1460,9 @@ function InstallPython()
 
 function InstallPorter()
 {
-  iwr "https://cdn.porter.sh/latest/install-windows.ps1" -UseBasicParsing | iex
+    write-host "Installing Porter";
+    
+    iwr "https://cdn.porter.sh/latest/install-windows.ps1" -UseBasicParsing | iex
 }
 
 function InstallPostman()
@@ -1763,7 +1788,7 @@ function InstallAzureCli()
 {
   Write-Host "Install Azure CLI." -ForegroundColor Yellow
 
-  choco install azure-cli  -y --ignoredetectedreboot
+  choco install azure-cli -y --ignoredetectedreboot
 
   <#
   #install azure cli
@@ -1816,6 +1841,13 @@ function InstallAzPowerShellModule
         Install-Module Az -Repository PSGallery -Force -AllowClobber
     }
     #>
+}
+
+function InstallSplunkServer
+{
+    Write-Host "Installing Splunk" -ForegroundColor Yellow
+
+    choco install splunk-server -y --ignoredetectedreboot
 }
 
 function InstallAzPowerShellModuleMSI
