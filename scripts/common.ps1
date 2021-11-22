@@ -463,7 +463,7 @@ function DeployAllSolutions($workspaceName, $resourceGroupName)
     #get the workspace Id
     $ws = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroup $rg.ResourceGroupName;
     
-    $solutions = @("SecurityCenterFree", "Security", "Updates", "ContainerInsights", "ServiceMap", "AzureActivity", "ChangeTracking", "VMInsights", "SecurityInsights", "NetworkMonitoring", "SQLVulnerabilityAssessment", "SQLAdvancedThreatProtection", "AntiMalware", "AzureAutomation", "LogicAppsManagement"); #, "SQLDataClassification"
+    $solutions = @("SecurityCenterFree", "Security", "Updates", "ContainerInsights", "ServiceMap", "AzureActivity", "ChangeTracking", "VMInsights", "SecurityInsights", "NetworkMonitoring", "SQLVulnerabilityAssessment", "SQLAdvancedThreatProtection", "AntiMalware", "AzureAutomation", "LogicAppsManagement", "DnsAnalytics", "NetworkMonitoring"); #, "SQLDataClassification"
 
     foreach($sol in $solutions)
     {
