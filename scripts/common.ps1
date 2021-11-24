@@ -20,9 +20,17 @@ function SetFileOptions()
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "Hidden" -Value 0 -ea SilentlyContinue;
 }
 
-function SetupSplunk($workshopName)
+function SetupSplunk()
 {
     write-host "Setting up Splunk";
+
+    remove-item "user-seed.conf" -ea SilentlyContinue;
+
+    $line = "[user_info]`n`r"
+    $line += "USERNAME = admin`n`r"
+    $line += "PASSWORD = changeme`n`r"
+
+    Add-content "user-seed.conf" $line;
 
     splunk stop
 
@@ -52,7 +60,7 @@ function EnableContinousExport($workshopName)
     $key = Get-AzEventHubKey -ResourceGroupName $resourceGroupName -NamespaceName $resourceName -AuthorizationRuleName All;
     $connString = $key.primaryConnectionString;
 
-    $content = get-content "c:\labfiles\$workshopName\artifacts\environment-setup\automation\enableContinousExport.json" -raw;
+    $content = get-content "c:\labfiles\$workshopName\artifacts\environment-setup\automation\enableContinuousExport.json" -raw;
 
     #replace the values...
     $content = $content | ForEach-Object {$_ -Replace "{SUBSCRIPTION_ID}", "$subscriptionId"};
@@ -166,6 +174,8 @@ function SetDefenderWorkspace($wsName, $resourceGroupName, $subscriptionId)
     $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
     $token = $item.Token;
 
+    $post = ConvertTo-Json $post;
+
     $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
 
     return $res;
@@ -184,6 +194,8 @@ function SetDefenderAutoprovision($subscriptionId)
 
     $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
     $token = $item.Token;
+
+    $post = ConvertTo-Json $post;
 
     $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
 
@@ -246,7 +258,47 @@ function EnableSolutionViaRest($name, $workspaceName, $location)
     #do the PUT
     $url = "https://management.azure.com/subscriptions/$subscription/resourceGroups/$resourceGroupName/providers/Microsoft.OperationsManagement/solutions/Security($workspaceName)?api-version=2015-11-01-preview";
 
+    $post = ConvertTo-Json $post;
+
     $res = Invoke-AzRestMethod -Path $url -Method PUT -body $post;
+}
+
+function CreateSavedSearch($workspaceName, $queryName, $query, $category, $isGroup)
+{
+    $id = [Guid]::NewGuid();
+
+    $post = @{};
+    $post.properties = @{};
+    $post.properties.Category = $category;
+    $post.properties.DisplayName = $queryName;
+    $post.properties.FunctionAlias = $queryName;
+    $post.properties.FunctionParameters = "";
+    $post.properties.Query = $query;
+    $post.Tags = @();
+
+    if ($isGroup)
+    {
+        $nv = @{};
+        $nv.Value = "Computer";
+        $nv.Name = "Group"
+        $post.Tags += $nv;
+    }
+
+    $post = "{`"properties`":{`"Category`":`"$category`",`"DisplayName`":`"$queryName`",`"FunctionAlias`":`"$queryName`",`"Query`":`"$query`",`"Tags`":[{`"Name`":`"Group`",`"Value`":`"Computer`"}],`"FunctionParameters`":`"`"}}"
+
+    $url = "https://management.azure.com/subscriptions/$subscriptionId/resourcegroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$workspaceName/savedSearches/$($id)_$($queryName)/?api-version=2017-03-03-preview";
+
+    #$post = ConvertTo-Json $post;
+
+    #$post = $post.replace("`r`n","")
+
+    #get a bearer token for api call...
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+
+    $res;
 }
 
 function EnableASCAutoProvision($resourceName)
@@ -285,7 +337,8 @@ function EnableASCAutoProvision($resourceName)
     CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
 
     #ASC auto provisioning of vulnerability assessment agent for machines
-    AssignPolicy "ASC auto provisioning of vulnerability assessment agent for mac" $desc "13ce0167-8ca6-4048-8e6b-f996402e3c1b" "/subscriptions/$SubscriptionId" $location
+    $parameters = @{"vaType"="mdeTvm"}
+    AssignPolicy "ASC auto provisioning of vulnerability assessment agent for mac" $desc "13ce0167-8ca6-4048-8e6b-f996402e3c1b" "/subscriptions/$SubscriptionId" $location $parameters;
 
     #ASC provisioning machines with no MI for GC agent
     AssignPolicy "ASC provisioning machines with no MI for GC agent" $desc "3cf2ab00-13f1-4d0c-8971-2ac904541a7e" "/subscriptions/$SubscriptionId" $location
