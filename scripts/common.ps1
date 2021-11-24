@@ -152,6 +152,44 @@ function Finalize()
     remove-item "c:\labfiles\httphelper.ps1" -ea silentlycontinue
 }
 
+function SetDefenderWorkspace($wsName, $resourceGroupName, $subscriptionId)
+{
+    $url = "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Security/workspaceSettings/default?api-version=2017-08-01-preview";
+
+    $post = @{};
+    $post.id = "/subscriptions/$subscriptionId/providers/Microsoft.Security/workspaceSettings/default";
+    $post.name = "default";
+    $post.properties = @{};
+    $post.properties.scope = "/subscriptions/$subscriptionId";
+    $post.properties.workspaceId = "/subscriptions/$subscriptionId/resourcegroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$wsName";
+
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+
+    return $res;
+}
+
+function SetDefenderAutoprovision($subscriptionId)
+{
+    $url = "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Security/workspaceSettings/default?api-version=2017-08-01-preview";
+
+    $post = @{};
+    $post.id = "/subscriptions/$subscriptionId/providers/Microsoft.Security/autoProvisioningSettings/default";
+    $post.name = "default";
+    $post.type = "Microsoft.Security/autoProvisioningSettings";
+    $post.properties = @{};
+    $post.properties.autoProvision = "On";
+
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+
+    return $res;
+}
+
 function EnableAzureDefender()
 {
     write-host "Enabling Azure Defender";
@@ -1417,6 +1455,27 @@ function InstallUbuntu()
     #start-process $installCommand;
 }
 
+function InstallWebPI
+{
+    $url = "https://go.microsoft.com/fwlink/?LinkId=287166"
+    $output = "c:\temp\WebPlatformInstaller_amd64_en-US.msi"
+    $start_time = Get-Date
+
+    Invoke-WebRequest -Uri $url -OutFile $output
+    Write-Output "Time taken: $((Get-Date).Subtract($start_time).Seconds) second(s)"
+
+    & c:\temp\WebPlatformInstaller_amd64_en-US.msi /quiet
+
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+}
+
+function InstallWebPIPhp
+{
+    #WebPICMD.exe /Install /Products:"PHP80x64,PHPManager,MySQLConnector"
+
+    WebPICMD.exe /Install /Products:"PHP80x64,MySQLConnector"
+}
+
 function InstallPhp
 {
     write-host "Installing Php";
@@ -1428,7 +1487,11 @@ function InstallIIS
 {
     write-host "Installing IIS";
 
-    Install-WindowsFeature -Name Web-Server -IncludeAllSubFeature
+    #windows server
+    Install-WindowsFeature -Name Web-Server -IncludeAllSubFeature -ea silentlycontinue
+
+    #windows 10
+    Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole, IIS-WebServer, IIS-CommonHttpFeatures, IIS-ManagementConsole, IIS-HttpErrors, IIS-HttpRedirect, IIS-WindowsAuthentication, IIS-StaticContent, IIS-DefaultDocument, IIS-HttpCompressionStatic, IIS-DirectoryBrowsing  -ea silentlycontinue
 }
 
 function InstallOffice()
