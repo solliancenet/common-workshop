@@ -40,6 +40,19 @@ function SetupSplunk()
     splunk start
 }
 
+function ExecuteSqlDatabaseScan($resourceName, $databaseName)
+{
+    $scanName = [DateTime]::Now.ToString("yyyyMMdd");
+    #$scanName = "20211126_221402";
+
+    $url = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Sql/servers/$resourceName/databases/$databaseName/vulnerabilityAssessments/default/scans/$scanName/initiateScan?api-version=2017-10-01-preview";
+
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $res = Invoke-RestMethod -uri $url -Method POST -Body $content -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+}
+
 function StartTenantBackFill()
 {
     $url = "https://management.azure.com/providers/Microsoft.Management/startTenantBackfill?api-version=2020-05-01";
@@ -563,6 +576,55 @@ function EnableVMVulnerability()
     }
 }
 
+function SetLogAnalyticsAgentConfigRest($workspaceName)
+{
+    $sub = Get-AzSubscription;
+
+    $subscriptionId = $sub.SubscriptionId;
+
+    $ws = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroup $ResourceGroupName;
+    $workspaceId = $ws.CustomerId;
+    $keys = Get-AzOperationalInsightsWorkspaceSharedKey -ResourceGroup $ResourceGroupName -Name $workspaceName;
+    $workspaceKey = $keys.PrimarySharedKey;
+
+    $vms = Get-AzVm
+
+    foreach($vm in $vms)
+    {
+        $agentName = "MicrosoftMonitoringAgent";
+
+        if ($vm.OsType -eq "Linux")
+        {
+            $agentName = "OmsAgentForLinux";
+        }
+
+        $post = @{};
+        $post.Id = "/subscriptions/$subscriptionId/resourceGroups/$($vm.resourceGroupName)/providers/Microsoft.Compute/virtualMachines/$($vm.Name)/extensions/$agentName";
+        $post.Location = $vm.Location;
+        $post.Name = "$agentName"
+        $post.Type = "Microsoft.Compute/virtualMachines/extensions"
+        $post.Properties = @{};
+        $post.Properties.AutoUpgradeMinorVersion = $true;
+        $post.Properties.Publisher = "Microsoft.EnterpriseCloud.Monitoring";
+        $post.Properties.Type = "$agentName";
+        $post.Properties.TypeHandlerVersion = "1.0";
+        $post.Properties.Settings = @{};
+        $post.Properties.Settings.workspaceId = $workspaceId;
+        $post.Properties.ProtectedSettings = @{};
+        $post.Properties.ProtectedSettings.workspaceKey = $workspaceKey;
+
+        #do the PUT
+        $url = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$($vm.resourceGroupName)/providers/Microsoft.Compute/virtualMachines/$($vm.Name)/extensions/$($agentName)?api-version=2015-06-15";
+
+        $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+        $token = $item.Token;
+
+        $json = ConvertTo-Json $post;
+
+        $res = Invoke-RestMethod -uri $url -Method PUT -Body $json -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+    }
+}
+
 function SetLogAnalyticsAgentConfig($workspaceName, $resourceGroupName)
 {
     $rg = Get-AzResourceGroup -Name $resourceGroupName
@@ -622,7 +684,7 @@ function DeployAllSolutions($workspaceName, $resourceGroupName)
     #get the workspace Id
     $ws = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroup $rg.ResourceGroupName;
     
-    $solutions = @("SecurityCenterFree", "Security", "Updates", "ContainerInsights", "ServiceMap", "AzureActivity", "ChangeTracking", "VMInsights", "SecurityInsights", "NetworkMonitoring", "SQLVulnerabilityAssessment", "SQLAdvancedThreatProtection", "AntiMalware", "AzureAutomation", "LogicAppsManagement", "DnsAnalytics", "NetworkMonitoring"); #, "SQLDataClassification"
+    $solutions = @("SecurityCenterFree", "Security", "Updates", "ContainerInsights", "ServiceMap", "AzureActivity", "ChangeTracking", "VMInsights", "SecurityInsights", "NetworkMonitoring", "SQLVulnerabilityAssessment", "SQLAdvancedThreatProtection", "AzureAutomation", "LogicAppsManagement", "DnsAnalytics", "NetworkMonitoring", "WindowsFirewall"); #, "SQLDataClassification","AntiMalware",
 
     foreach($sol in $solutions)
     {
