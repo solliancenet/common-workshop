@@ -40,6 +40,16 @@ function SetupSplunk()
     splunk start
 }
 
+function StartTenantBackFill()
+{
+    $url = "https://management.azure.com/providers/Microsoft.Management/startTenantBackfill?api-version=2020-05-01";
+
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $res = Invoke-RestMethod -uri $url -Method POST -Body $content -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+}
+
 function EnableContinousExport($workshopName)
 {
     write-host "Enabling Continous Export with EventHub";
@@ -170,6 +180,64 @@ function SetDefenderWorkspace($wsName, $resourceGroupName, $subscriptionId)
     $post.properties = @{};
     $post.properties.scope = "/subscriptions/$subscriptionId";
     $post.properties.workspaceId = "/subscriptions/$subscriptionId/resourcegroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$wsName";
+
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $post = ConvertTo-Json $post;
+
+    $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+
+    return $res;
+}
+
+function ListServiceSas($id)
+{
+    $id = "changetrackingpolicykey1_1637800516020";
+    
+    $url = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$resourceName/ListServiceSas?api-version=2016-12-01";
+
+    $post = @{};
+    $post.canonicalizedResource = "/blob/$resourceName/changetrackingblob";
+    $post.signedResource = "c";
+    $post.signedIdentifier = $id;
+
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $post = ConvertTo-Json $post;
+
+    $res = Invoke-RestMethod -uri $url -Method POST -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+
+    return $res.serviceSasToken;
+}
+
+function SetFileIntegrityLink($keyVersion, $resourceName)
+{
+    #get the storage account
+    $dataLakeStorageAccountKey = (Get-AzStorageAccountKey -ResourceGroupName $resourceGroupName -AccountName $resourceName)[0].Value
+    $dataLakeContext = New-AzStorageContext -StorageAccountName $wsName -StorageAccountKey $dataLakeStorageAccountKey
+
+    #create the container
+    $storageContainerName = "changetrackingblob";
+    $sqlImportContainer = New-AzStorageContainer -Permission Container -name $storageContainerName -context $dataLakeContext;
+
+    #get the sasKey
+    $sasToken = "?sv=2015-04-05&sr=c&si=changetrackingpolicykey2_1637800518240&sig=GOBSzxwb2jp%2BMsvYUyMf%2ByMfZhU%2BUm6BfdLeIdw1h8c%3D";
+
+    $id = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$resourceName/datasources/changetrackingcontentlocation$subscriptionId;$resourceName;changetrackingpolicykey$keyVersion";
+
+    $url = "https://management.azure.com/$id?api-version=2015-11-01-preview";
+
+    $post = @{};
+    $post.id = $id;
+    $post.king = "ChangeTrackingContentLocation";
+    $post.name = "default";
+    $post.location = "$resourceGroupName";
+    $post.properties = @{};
+    $post.properties.enabled = $true;
+    $post.properties.description = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$resourceName";
+    $post.properties.countentUri = "https://$resourceName.blob.core.windows.net/changetrackingblob$sasToken";
 
     $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
     $token = $item.Token;
@@ -364,7 +432,7 @@ function CreateRoleAssignment($roleDefId, $principalId, $principalType)
     $post.properties.roleDefinitionId = "/providers/Microsoft.Authorization/roleDefinitions/$roleDefId";
 
     #do the PUT
-    $url = "https://management.azure.com/subscriptions/$subscription/resourceGroups/$resourceGroupName/providers/Microsoft.Authorization/roleAssignments/$assignmentId?api-version=2019-04-01-preview";
+    $url = "https://management.azure.com/subscriptions/$subscription/resourceGroups/$resourceGroupName/providers/Microsoft.Authorization/roleAssignments/$($assignmentId)?api-version=2019-04-01-preview";
 
     $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
     $token = $item.Token;
@@ -584,9 +652,9 @@ function EnableJIT($resourceGroupName, $excludeVms)
             continue;
         }
 
-        write-host "Enabling JIT on $vm";
+        write-host "Enabling JIT on $($vm.name)";
 
-        $JitPolicy = (@{ id="/subscriptions/$subscriptionId/resourceGroups/$($rg.ResourceGroupName)/providers/Microsoft.Compute/virtualMachines/$($vm.Name)"
+        $JitPolicy = (@{ id="/subscriptions/$subscriptionId/resourceGroups/$($vm.ResourceGroupName)/providers/Microsoft.Compute/virtualMachines/$($vm.Name)"
     ports=(@{
          number=22;
          protocol="*";
@@ -601,6 +669,40 @@ function EnableJIT($resourceGroupName, $excludeVms)
         $JitPolicyArr=@($JitPolicy)
     
         Set-AzJitNetworkAccessPolicy -Kind "Basic" -Location $vm.Location -Name $vm.Name -ResourceGroupName $vm.ResourceGroupName -VirtualMachine $JitPolicyArr
+    }
+}
+
+function EnableJITRestApi($workshopName, $excludeVms)
+{
+    write-host "Enabling JIT (Rest)";
+
+    $sub = Get-AzSubscription;
+    $subscriptionId = $sub.SubscriptionId;
+
+    $vms = Get-AzVM;
+
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    foreach($vm in $vms)
+    {
+        if ($excludeVms -contains $vm.Name)
+        {
+            continue;
+        }
+
+        write-host "Enabling JIT on $($vm.name)";
+
+        $content = Get-Content "c:\labfiles\$workshopName\artifacts\environment-setup\automation\jitPolicy.json";
+
+        $content = $content.replace("#SUBSCRIPTION_ID#",$subscriptionId);
+        $content = $content.replace("#RESOURCE_GROUP_NAME#",$vm.resourceGroupName);
+        $content = $content.replace("#LOCATION#",$vm.Location);
+        $content = $content.replace("#VM_NAME#",$vm.Name);
+
+        $url = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$($vm.resourceGroupName)/providers/Microsoft.Security/locations/$($vm.location)/jitNetworkAccessPolicies/default?api-version=2015-06-01-preview"
+    
+        $res = Invoke-RestMethod -uri $url -Method PUT -Body $content -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
     }
 }
 
