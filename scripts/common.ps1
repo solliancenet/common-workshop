@@ -227,6 +227,8 @@ function ListServiceSas($id)
 
 function SetFileIntegrityLink($keyVersion, $resourceName)
 {
+    write-host "Setting the file integrity storage account link"
+
     #get the storage account
     $dataLakeStorageAccountKey = (Get-AzStorageAccountKey -ResourceGroupName $resourceGroupName -AccountName $resourceName)[0].Value
     $dataLakeContext = New-AzStorageContext -StorageAccountName $wsName -StorageAccountKey $dataLakeStorageAccountKey
@@ -244,7 +246,7 @@ function SetFileIntegrityLink($keyVersion, $resourceName)
 
     $post = @{};
     $post.id = $id;
-    $post.king = "ChangeTrackingContentLocation";
+    $post.kind = "ChangeTrackingContentLocation";
     $post.name = "default";
     $post.location = "$resourceGroupName";
     $post.properties = @{};
@@ -264,6 +266,8 @@ function SetFileIntegrityLink($keyVersion, $resourceName)
 
 function SetDefenderAutoprovision($subscriptionId)
 {
+    write-host "Setting the default workspace for Defender"
+
     $url = "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Security/workspaceSettings/default?api-version=2017-08-01-preview";
 
     $post = @{};
@@ -445,7 +449,7 @@ function CreateRoleAssignment($roleDefId, $principalId, $principalType)
     $post.properties.roleDefinitionId = "/providers/Microsoft.Authorization/roleDefinitions/$roleDefId";
 
     #do the PUT
-    $url = "https://management.azure.com/subscriptions/$subscription/resourceGroups/$resourceGroupName/providers/Microsoft.Authorization/roleAssignments/$($assignmentId)?api-version=2019-04-01-preview";
+    $url = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Authorization/roleAssignments/$($assignmentId)?api-version=2019-04-01-preview";
 
     $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
     $token = $item.Token;
