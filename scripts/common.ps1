@@ -183,27 +183,6 @@ function Finalize()
     remove-item "c:\labfiles\httphelper.ps1" -ea silentlycontinue
 }
 
-function SetDefenderWorkspace($wsName, $resourceGroupName, $subscriptionId)
-{
-    $url = "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Security/workspaceSettings/default?api-version=2017-08-01-preview";
-
-    $post = @{};
-    $post.id = "/subscriptions/$subscriptionId/providers/Microsoft.Security/workspaceSettings/default";
-    $post.name = "default";
-    $post.properties = @{};
-    $post.properties.scope = "/subscriptions/$subscriptionId";
-    $post.properties.workspaceId = "/subscriptions/$subscriptionId/resourcegroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$wsName";
-
-    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
-    $token = $item.Token;
-
-    $post = ConvertTo-Json $post;
-
-    $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
-
-    return $res;
-}
-
 function ListServiceSas($id)
 {
     $id = "changetrackingpolicykey1_1637800516020";
@@ -266,7 +245,7 @@ function SetFileIntegrityLink($keyVersion, $resourceName)
 
 function SetDefenderAutoprovision($subscriptionId)
 {
-    write-host "Setting the default workspace for Defender"
+    write-host "Enabling autoprovision";
 
     $url = "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Security/workspaceSettings/default?api-version=2017-08-01-preview";
 
@@ -276,6 +255,30 @@ function SetDefenderAutoprovision($subscriptionId)
     $post.type = "Microsoft.Security/autoProvisioningSettings";
     $post.properties = @{};
     $post.properties.autoProvision = "On";
+    $post.properties.scope = "/subscriptions/$subscriptionId";
+
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $post = ConvertTo-Json $post;
+
+    $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+
+    return $res;
+}
+
+function SetDefenderWorkspace($wsName, $resourceGroupName, $subscriptionId)
+{
+    write-host "Setting the default workspace for Defender"
+
+    $url = "https://management.azure.com/subscriptions/$subscriptionId/providers/Microsoft.Security/workspaceSettings/default?api-version=2017-08-01-preview";
+
+    $post = @{};
+    $post.id = "/subscriptions/$subscriptionId/providers/Microsoft.Security/workspaceSettings/default";
+    $post.name = "default";
+    $post.properties = @{};
+    $post.properties.scope = "/subscriptions/$subscriptionId";
+    $post.properties.workspaceId = "/subscriptions/$subscriptionId/resourcegroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$wsName";
 
     $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
     $token = $item.Token;
@@ -454,9 +457,9 @@ function CreateRoleAssignment($roleDefId, $principalId, $principalType)
     $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
     $token = $item.Token;
 
-    $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+    $json = ConvertTo-Json $post;
 
-    #$res = Invoke-AzRestMethod -Path $url -Method PUT -body $post;
+    $res = Invoke-RestMethod -uri $url -Method PUT -Body $json -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
 
     return $res;
 }
