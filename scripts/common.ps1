@@ -185,8 +185,6 @@ function Finalize()
 
 function ListServiceSas($id)
 {
-    $id = "changetrackingpolicykey1_1637800516020";
-    
     $url = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$resourceName/ListServiceSas?api-version=2016-12-01";
 
     $post = @{};
@@ -204,41 +202,50 @@ function ListServiceSas($id)
     return $res.serviceSasToken;
 }
 
-function SetFileIntegrityLink($keyVersion, $resourceName)
+function SetFileIntegrityLink($resourceName)
 {
     write-host "Setting the file integrity storage account link"
 
     #get the storage account
     $dataLakeStorageAccountKey = (Get-AzStorageAccountKey -ResourceGroupName $resourceGroupName -AccountName $resourceName)[0].Value
-    $dataLakeContext = New-AzStorageContext -StorageAccountName $wsName -StorageAccountKey $dataLakeStorageAccountKey
+    $dataLakeContext = New-AzStorageContext -StorageAccountName $resourceName -StorageAccountKey $dataLakeStorageAccountKey
 
     #create the container
     $storageContainerName = "changetrackingblob";
     $sqlImportContainer = New-AzStorageContainer -Permission Container -name $storageContainerName -context $dataLakeContext;
 
+    $key1 = SetFileIntegrityLinkKey 1 $resourceName;
+    $key2 = SetFileIntegrityLinkKey 2 $resourceName;
+}
+
+function SetFileIntegrityLinkKey($keyVersion, $resourceName)
+{
     #get the sasKey
-    $sasToken = "?sv=2015-04-05&sr=c&si=changetrackingpolicykey2_1637800518240&sig=GOBSzxwb2jp%2BMsvYUyMf%2ByMfZhU%2BUm6BfdLeIdw1h8c%3D";
+    $sasToken = ListServiceSas "changetrackingpolicykey$($keyVersion)";
 
-    $id = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$resourceName/datasources/changetrackingcontentlocation$subscriptionId;$resourceName;changetrackingpolicykey$keyVersion";
+    #$sasToken = "?sv=2015-04-05&sr=c&si=changetrackingpolicykey2_1637800518240&sig=GOBSzxwb2jp%2BMsvYUyMf%2ByMfZhU%2BUm6BfdLeIdw1h8c%3D";
 
-    $url = "https://management.azure.com/$id?api-version=2015-11-01-preview";
+    $name = "changetrackingcontentlocation$subscriptionId;$resourceName;changetrackingpolicykey$keyVersion";
+    $id = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$resourceName/datasources/$name";
+
+    $url = "https://management.azure.com/$($id)?api-version=2015-11-01-preview";
 
     $post = @{};
     $post.id = $id;
     $post.kind = "ChangeTrackingContentLocation";
-    $post.name = "default";
+    $post.name = $name;
     $post.location = "$resourceGroupName";
     $post.properties = @{};
     $post.properties.enabled = $true;
     $post.properties.description = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$resourceName";
-    $post.properties.countentUri = "https://$resourceName.blob.core.windows.net/changetrackingblob$sasToken";
+    $post.properties.contentUri = "https://$resourceName.blob.core.windows.net/changetrackingblob?$sasToken";
 
     $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
     $token = $item.Token;
 
-    $post = ConvertTo-Json $post;
+    $json = ConvertTo-Json $post;
 
-    $res = Invoke-RestMethod -uri $url -Method PUT -Body $post -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+    $res = Invoke-RestMethod -uri $url -Method PUT -Body $json -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
 
     return $res;
 }
@@ -311,7 +318,7 @@ function EnableAzureDefender()
 
 function ConnectAzureActivityLog($workspaceName, $resourceGroupName)
 {
-    write-host "Enabling Azure Activity Log to [$workspace]";
+    write-host "Enabling Azure Activity Log to [$workspaceName]";
 
     $sub = Get-AzSubscription;
 
@@ -476,8 +483,10 @@ function AssignPolicy($name, $description, $defId, $scope, $location, $parameter
 
     if ($curPolicy)
     {
-        $location = $curPolicy.Location;
-        $curPolicy | Set-AzPolicyAssignment -EnforcementMode Default;    
+        #$location = $curPolicy.Location;
+        #$curPolicy | Set-AzPolicyAssignment -EnforcementMode Default;    
+
+        Remove-AzPolicyAssignment -Name $name;
     }
     else 
     {
@@ -584,8 +593,34 @@ function EnableVMVulnerability()
     #deploy...
     foreach($vm in $vms)
     {
+        write-host "Enabling VM Vulnerabilities [$($vm.Name)]";
+
+        #must be started to work...
+        $vm | Start-AzVM;
+
         $res = Invoke-AzRestMethod -Path ('{0}/providers/Microsoft.Security/serverVulnerabilityAssessments/default?api-Version=2015-06-01-preview' -f $vm.id) -Method PUT
+
+        $res;
     }
+}
+
+#All, Recommended
+function SetWorkspaceEventLevel($level)
+{
+    $url = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$resourceName/datasources/SecurityEventCollectionConfiguration?api-version=2015-11-01-preview"
+
+    $post = @{};
+    $post.kind = "SecurityEventCollectionConfiguration";
+    $post.properties = @{};
+    $post.properties.tier = $level;
+
+    $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
+    $token = $item.Token;
+
+    $json = ConvertTo-Json $post;
+
+    $res = Invoke-RestMethod -uri $url -Method PUT -Body $json -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
+    
 }
 
 function SetLogAnalyticsAgentConfigRest($workspaceName)
