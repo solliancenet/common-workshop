@@ -18,6 +18,10 @@ function SetFileOptions()
 {
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "HideFileExt" -Value 0 -ea SilentlyContinue;
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "Hidden" -Value 0 -ea SilentlyContinue;
+    Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "HideDrivesWithNoMedia" -Value 0 -ea SilentlyContinue;
+
+    #disable the computer management startup window
+    Get-ScheduledTask -TaskName ServerManager | Disable-ScheduledTask -Verbose -ea silentlycontinue;
 }
 
 function SetupSplunk()
@@ -418,20 +422,6 @@ function EnableASCAutoProvision($resourceName)
     #ASC provisioning Dependency agent for Windows
     AssignPolicy "ASC provisioning Dependency agent for Windows" $desc "1c210e94-a481-4beb-95fa-1571b434fb04" "/subscriptions/$SubscriptionId" $location
 
-    #ASC provisioning LA agent Linux Arc
-    $parameters = @{"logAnalytics"="$resourceName"}
-    $assign = AssignPolicy "ASC provisioning LA agent Linux Arc" $desc "9d2b61b4-1d14-4a63-be30-d4498e7ad2cf" "/subscriptions/$SubscriptionId" $location $parameters;
-
-    #set role assignment
-    CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
-
-    #ASC provisioning LA agent Windows Arc
-    $parameters = @{"logAnalytics"="$resourceName"}
-    $assign = AssignPolicy "ASC provisioning LA agent Windows Arc" $desc "69af7d4a-7b18-4044-93a9-2651498ef203" "/subscriptions/$SubscriptionId" $location $parameters;
-
-    #set role assignment
-    CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
-
     #ASC auto provisioning of vulnerability assessment agent for machines
     $parameters = @{"vaType"="mdeTvm"}
     AssignPolicy "ASC auto provisioning of vulnerability assessment agent for mac" $desc "13ce0167-8ca6-4048-8e6b-f996402e3c1b" "/subscriptions/$SubscriptionId" $location $parameters;
@@ -447,6 +437,22 @@ function EnableASCAutoProvision($resourceName)
 
     #ASC provisioning Guest Configuration agent for Windows
     AssignPolicy "ASC provisioning Guest Configuration agent for Windows" $desc "385f5831-96d4-41db-9a3c-cd3af78aaae6" "/subscriptions/$SubscriptionId" $location
+
+    #ASC provisioning LA agent Linux Arc
+    $parameters = @{"logAnalytics"="$resourceName"}
+    $assign = AssignPolicy "ASC provisioning LA agent Linux Arc" $desc "9d2b61b4-1d14-4a63-be30-d4498e7ad2cf" "/subscriptions/$SubscriptionId" $location $parameters;
+
+    #set role assignment
+    CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
+
+    #ASC provisioning LA agent Windows Arc
+    $parameters = @{"logAnalytics"="$resourceName"}
+    $assign = AssignPolicy "ASC provisioning LA agent Windows Arc" $desc "69af7d4a-7b18-4044-93a9-2651498ef203" "/subscriptions/$SubscriptionId" $location $parameters;
+
+    #set role assignment
+    CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
+
+    $assign = AssignPolicy "ASC provisioning Azure Policy Addon for Kubernetes" $desc "a8eff44f-8c92-45c3-a3fb-9880802d67a7" "/subscriptions/$SubscriptionId" $location;
 }
 
 function CreateRoleAssignment($roleDefId, $principalId, $principalType)
@@ -588,15 +594,18 @@ function EnableVMVulnerability()
     write-host "Enabling VM Vulnerabilities";
 
     #get all vms
-    $vms = Get-AzVM
+    $vms = Get-AzVM -status
 
     #deploy...
     foreach($vm in $vms)
     {
         write-host "Enabling VM Vulnerabilities [$($vm.Name)]";
 
-        #must be started to work...
-        $vm | Start-AzVM;
+        if ($vm.PowerState -ne "VM Running")
+        {
+            #must be started to work...
+            $vm | Start-AzVM;
+        }
 
         $res = Invoke-AzRestMethod -Path ('{0}/providers/Microsoft.Security/serverVulnerabilityAssessments/default?api-Version=2015-06-01-preview' -f $vm.id) -Method PUT
 
