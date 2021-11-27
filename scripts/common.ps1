@@ -1382,7 +1382,7 @@ function InstallPutty()
 {
     write-host "Installing Putty";
 
-    choco install putty
+    choco install putty --ignoredetectedreboot --force
 
     <#
     #check for executables...
