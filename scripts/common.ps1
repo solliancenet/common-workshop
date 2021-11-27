@@ -256,6 +256,7 @@ function SetDefenderAutoprovision($subscriptionId)
     $post.properties = @{};
     $post.properties.autoProvision = "On";
     $post.properties.scope = "/subscriptions/$subscriptionId";
+    $post.properties.workspaceId = "/subscriptions/$subscriptionId/resourcegroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$resourceName";
 
     $item = Get-AzAccessToken -ResourceUrl "https://management.azure.com";
     $token = $item.Token;
@@ -532,7 +533,7 @@ function EnableAKSPolicy($resourceGroupName)
 
 function EnableOtherCompliancePolicy($resourceGroupName)
 {
-    write-host "Enabling Other Policies";
+    write-host "Enabling Other Compliance Policies";
 
     $sub = Get-AzSubscription;
 
@@ -541,14 +542,18 @@ function EnableOtherCompliancePolicy($resourceGroupName)
     $rg = Get-AzResourceGroup -Name $resourceGroupName
 
     #NIST SP 800-53 Rev. 4
-    $def1 = Get-AzPolicySetDefinition -Id "/providers/Microsoft.Authorization/policySetDefinitions/cf25b9c1-bd23-4eb6-bd2c-f4f3ac644a5f"
-    $assign = New-AzPolicyAssignment -Name "2ffdd0e7fecf480d97b9d1e6" -Description "NIST SP 800-53 Rev. 4" -PolicySetDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
-    $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+    #$def1 = Get-AzPolicySetDefinition -Id "/providers/Microsoft.Authorization/policySetDefinitions/cf25b9c1-bd23-4eb6-bd2c-f4f3ac644a5f"
+    #$assign = New-AzPolicyAssignment -Name "2ffdd0e7fecf480d97b9d1e6" -Description "NIST SP 800-53 Rev. 4" -PolicySetDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
+    #$assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+
+    AssignPolicy "2ffdd0e7fecf480d97b9d1e6" "NIST SP 800-53 Rev. 4", "cf25b9c1-bd23-4eb6-bd2c-f4f3ac644a5f" "/subscriptions/$SubscriptionId" $rg.location;
 
     #UKO and UK NHS
-    $def1 = Get-AzPolicySetDefinition -Id "/providers/Microsoft.Authorization/policySetDefinitions/3937f550-eedd-4639-9c5e-294358be442e"
-    $assign = New-AzPolicyAssignment -Name "f33c339c870a4c8f8bdab7ce" -Description "UKO and UK NHS" -PolicySetDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
-    $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+    #$def1 = Get-AzPolicySetDefinition -Id "/providers/Microsoft.Authorization/policySetDefinitions/3937f550-eedd-4639-9c5e-294358be442e"
+    #$assign = New-AzPolicyAssignment -Name "f33c339c870a4c8f8bdab7ce" -Description "UKO and UK NHS" -PolicySetDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
+    #$assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+
+    AssignPolicy "f33c339c870a4c8f8bdab7ce" "UKO and UK NHS", "3937f550-eedd-4639-9c5e-294358be442e" "/subscriptions/$SubscriptionId" $rg.location;
 
     #TODO - more of them...
 }
@@ -600,7 +605,7 @@ function SetLogAnalyticsAgentConfigRest($workspaceName)
     {
         $agentName = "MicrosoftMonitoringAgent";
 
-        if ($vm.OsType -eq "Linux")
+        if ($vm.OSProfile.LinuxConfiguration)
         {
             $agentName = "OmsAgentForLinux";
         }
