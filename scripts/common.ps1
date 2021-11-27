@@ -46,6 +46,8 @@ function SetupSplunk()
 
 function ExecuteSqlDatabaseScan($resourceName, $databaseName)
 {
+    write-host "Executing database scan [$databaseName]";
+
     $scanName = [DateTime]::Now.ToString("yyyyMMdd");
     #$scanName = "20211126_221402";
 
@@ -104,6 +106,14 @@ function EnableContinousExport($workshopName)
     $res = Invoke-RestMethod -uri $url -Method PUT -Body $content -ContentType "application/json" -Headers @{ Authorization="Bearer $token" }
 
     #$res = Invoke-AzRestMethod -Path $url -Method PUT -body $content;
+}
+
+function RemoveAppLocker()
+{
+    #remove AppLocker
+    Write-host "Removeing App Locker Policies";
+    $policy = Get-AppLockerPolicy -local
+    $policy.DeleteRuleCollections()
 }
 
 functioN WaitForResource($resourceGroup, $resourceName, $resourceType, $maxTime=2500)
