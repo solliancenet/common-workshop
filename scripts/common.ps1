@@ -455,21 +455,25 @@ function EnableASCAutoProvision($resourceName)
     AssignPolicy "ASC provisioning Guest Configuration agent for Windows" $desc "385f5831-96d4-41db-9a3c-cd3af78aaae6" "/subscriptions/$SubscriptionId" $location
 
     #ASC provisioning LA agent Linux Arc
-    $parameters = @{"logAnalytics"="$resourceName"}
+    $parameters = @{"logAnalytics"="/subscriptions/$subscriptionId/resourcegroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$resourceName";}
     $assign = AssignPolicy "ASC provisioning LA agent Linux Arc" $desc "9d2b61b4-1d14-4a63-be30-d4498e7ad2cf" "/subscriptions/$SubscriptionId" $location $parameters;
 
     if ($assign)
     {
+        start-sleep 20;
+
         #set role assignment
         CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
     }
 
     #ASC provisioning LA agent Windows Arc
-    $parameters = @{"logAnalytics"="$resourceName"}
+    $parameters = @{"logAnalytics"="/subscriptions/$subscriptionId/resourcegroups/$resourceGroupName/providers/microsoft.operationalinsights/workspaces/$resourceName";}
     $assign = AssignPolicy "ASC provisioning LA agent Windows Arc" $desc "69af7d4a-7b18-4044-93a9-2651498ef203" "/subscriptions/$SubscriptionId" $location $parameters;
 
     if ($assign)
     {
+        start-sleep 20;
+
         #set role assignment
         CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
     }
@@ -514,23 +518,21 @@ function AssignPolicy($name, $description, $defId, $scope, $location, $parameter
         #$location = $curPolicy.Location;
         #$curPolicy | Set-AzPolicyAssignment -EnforcementMode Default;    
 
-        Remove-AzPolicyAssignment -Name $name;
+        $ret = Remove-AzPolicyAssignment -Name $name;
+    }
+    
+    if ($parameters)
+    {
+        $assign = New-AzPolicyAssignment -Name $name -Description $description -PolicyDefinition $def -Scope $scope -AssignIdentity -Location $location -PolicyParameterObject $parameters;
     }
     else 
     {
-        if ($parameters)
-        {
-            $assign = New-AzPolicyAssignment -Name $name -Description $description -PolicyDefinition $def -Scope $scope -AssignIdentity -Location $location -PolicyParameterObject $parameters;
-        }
-        else 
-        {
-            $assign = New-AzPolicyAssignment -Name $name -Description $description -PolicyDefinition $def -Scope $scope -AssignIdentity -Location $location
-        }
-
-        $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
-
-        return $assign;
+        $assign = New-AzPolicyAssignment -Name $name -Description $description -PolicyDefinition $def -Scope $scope -AssignIdentity -Location $location
     }
+
+    $ret = $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+
+    return $assign;
 }
 
 function EnableDefaultASCPolicy()
