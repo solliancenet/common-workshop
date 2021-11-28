@@ -1,6 +1,12 @@
 <#
 COPYRIGHT SOLLIANCE / CHRIS GIVENS
 #>
+function StartSleeping($seconds)
+{
+    write-host "Starting to sleep [$seconds]";
+
+    start-sleep $seconds;
+}
 
 function PreventFirstRunPage()
 {
@@ -452,15 +458,21 @@ function EnableASCAutoProvision($resourceName)
     $parameters = @{"logAnalytics"="$resourceName"}
     $assign = AssignPolicy "ASC provisioning LA agent Linux Arc" $desc "9d2b61b4-1d14-4a63-be30-d4498e7ad2cf" "/subscriptions/$SubscriptionId" $location $parameters;
 
-    #set role assignment
-    CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
+    if ($assign)
+    {
+        #set role assignment
+        CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
+    }
 
     #ASC provisioning LA agent Windows Arc
     $parameters = @{"logAnalytics"="$resourceName"}
     $assign = AssignPolicy "ASC provisioning LA agent Windows Arc" $desc "69af7d4a-7b18-4044-93a9-2651498ef203" "/subscriptions/$SubscriptionId" $location $parameters;
 
-    #set role assignment
-    CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
+    if ($assign)
+    {
+        #set role assignment
+        CreateRoleAssignment "92aaf0da-9dab-42b6-94a3-d43ce8d16293" $assign.identity.principalId "ServicePrincipal"
+    }
 
     $assign = AssignPolicy "ASC provisioning Azure Policy Addon for Kubernetes" $desc "a8eff44f-8c92-45c3-a3fb-9880802d67a7" "/subscriptions/$SubscriptionId" $location;
 }
@@ -541,6 +553,7 @@ function EnableAKSPolicy($resourceGroupName)
 {
     write-host "Enabling AKS Policy";
 
+    <#
     $sub = Get-AzSubscription;
 
     $subscriptionId = $sub.SubscriptionId;
@@ -554,6 +567,9 @@ function EnableAKSPolicy($resourceGroupName)
 
     $assign = New-AzPolicyAssignment -Name "ASC provisioning Azure Policy Addon for Kubernetes" -Description "This policy assignment was automatically created by Azure Security Center for agent installation as configured in Security Center auto provisioning." -PolicyDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location 'Central US' #$rg.location
     $assign | Set-AzPolicyAssignment -EnforcementMode Default;    
+    #>
+
+    $assign = AssignPolicy "ASC provisioning Azure Policy Addon for Kubernetes" $desc "a8eff44f-8c92-45c3-a3fb-9880802d67a7" "/subscriptions/$SubscriptionId" $location;
 }
 
 function EnableOtherCompliancePolicy($resourceGroupName)
@@ -571,14 +587,14 @@ function EnableOtherCompliancePolicy($resourceGroupName)
     #$assign = New-AzPolicyAssignment -Name "2ffdd0e7fecf480d97b9d1e6" -Description "NIST SP 800-53 Rev. 4" -PolicySetDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
     #$assign | Set-AzPolicyAssignment -EnforcementMode Default;    
 
-    AssignPolicy "2ffdd0e7fecf480d97b9d1e6" "NIST SP 800-53 Rev. 4", "cf25b9c1-bd23-4eb6-bd2c-f4f3ac644a5f" "/subscriptions/$SubscriptionId" $rg.location;
+    AssignPolicy "2ffdd0e7fecf480d97b9d1e6" "NIST SP 800-53 Rev. 4" "cf25b9c1-bd23-4eb6-bd2c-f4f3ac644a5f" "/subscriptions/$SubscriptionId" $rg.location;
 
     #UKO and UK NHS
     #$def1 = Get-AzPolicySetDefinition -Id "/providers/Microsoft.Authorization/policySetDefinitions/3937f550-eedd-4639-9c5e-294358be442e"
     #$assign = New-AzPolicyAssignment -Name "f33c339c870a4c8f8bdab7ce" -Description "UKO and UK NHS" -PolicySetDefinition $def1 -Scope "/subscriptions/$SubscriptionId" -AssignIdentity -Location $rg.location
     #$assign | Set-AzPolicyAssignment -EnforcementMode Default;    
 
-    AssignPolicy "f33c339c870a4c8f8bdab7ce" "UKO and UK NHS", "3937f550-eedd-4639-9c5e-294358be442e" "/subscriptions/$SubscriptionId" $rg.location;
+    AssignPolicy "f33c339c870a4c8f8bdab7ce" "UKO and UK NHS" "3937f550-eedd-4639-9c5e-294358be442e" "/subscriptions/$SubscriptionId" $rg.location;
 
     #TODO - more of them...
 }
