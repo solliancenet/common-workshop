@@ -1777,11 +1777,17 @@ function InstallWebPIPhp
     WebPICMD.exe /Install /Products:"PHP80x64,MySQLConnector"
 }
 
-function InstallPhp
+function InstallPhp($version)
 {
-    write-host "Installing Php";
+    write-host "Installing Php [$version]";
 
-    choco install php --ignoredetectedreboot --force
+    if ($version)
+    {
+        choco install php --ignoredetectedreboot --force --version $version;
+    }
+    else {
+        choco install php --ignoredetectedreboot --force
+    }
 }
 
 function InstallIIS
@@ -1817,11 +1823,17 @@ function InstallMySQL()
     choco install mysql --ignoredetectedreboot --force
 }
 
-function InstallMySQLWorkbench()
+function InstallMySQLWorkbench($version)
 {
     write-host "Installing MySQL workbench";
 
-    choco install mysql.workbench --ignoredetectedreboot --force
+    if ($version)
+    {
+        choco install mysql.workbench --version $version --ignoredetectedreboot --force
+    }
+    else {
+        choco install mysql.workbench --ignoredetectedreboot --force    
+    }
 }
 
 
