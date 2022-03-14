@@ -1644,6 +1644,14 @@ function InstallDockerCompose()
     choco install docker-compose --ignoredetectedreboot --force
 }
 
+function Install7z()
+{
+    write-host "Installing 7zip";
+
+    choco install 7zip.install --ignoredetectedreboot --force
+}
+
+
 function InstallTor()
 {
     write-host "Installing Tor";
@@ -1770,11 +1778,13 @@ function InstallWebPI
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 }
 
-function InstallWebPIPhp
+function InstallWebPIPhp($items)
 {
+    write-host "Installing WebPI items";
+
     #WebPICMD.exe /Install /Products:"PHP80x64,PHPManager,MySQLConnector"
 
-    WebPICMD.exe /Install /Products:"PHP80x64,MySQLConnector"
+    WebPICMD.exe /Install /AcceptEULA /Products:"$items";
 }
 
 function InstallPhp($version)
