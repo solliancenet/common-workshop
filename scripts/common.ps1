@@ -1867,7 +1867,7 @@ function InstallFiddler()
   choco install fiddler --ignoredetectedreboot --force
 }
 
-function InstallPython()
+function InstallPython($version)
 {
     write-host "Installing Python";
 
