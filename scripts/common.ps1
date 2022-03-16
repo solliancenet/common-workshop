@@ -1601,6 +1601,28 @@ function CreateARMServiceConnection($organization, $name, $item, $spnId, $spnSec
     return $result;
 }
 
+function InstallGanache()
+{
+    write-host "Installing Ganache";
+
+    choco install ganache --ignoredetectedreboot --force
+
+    $url = "https://github.com/trufflesuite/ganache-ui/releases/download/v2.5.4/Ganache-2.5.4-win-x64.appx";
+
+    #download to c:temp
+
+
+    #install the appx
+    Add-AppxPackage -Path "C:\temp\Ganache-2.5.4-win-x64.appx"
+}
+
+function InstallNodeJS($version)
+{
+    write-host "Installing NodeJS";
+
+    choco install nodejs --ignoredetectedreboot --force
+}
+
 function InstallNotepadPP()
 {
     write-host "Installing Notepad++";
@@ -1873,7 +1895,7 @@ function InstallPython($version)
 
     InstallChocolaty;
 
-    choco install python --ignoredetectedreboot --force
+    choco install python --version=$version --ignoredetectedreboot --force --side-by-side
 }
 
 function InstallPorter()
