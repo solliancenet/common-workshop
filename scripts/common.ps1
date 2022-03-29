@@ -1673,6 +1673,12 @@ function Install7z()
     choco install 7zip.install --ignoredetectedreboot --force
 }
 
+function InstallGithubDesktop()
+{
+    write-host "Installing GitHub Desktop";
+
+    choco install github-desktop --ignoredetectedreboot --force
+}
 
 function InstallTor()
 {
