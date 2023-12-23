@@ -1654,8 +1654,11 @@ function InstallDocker()
 {
     write-host "Installing Docker";
 
-    Install-Module -Name DockerMsftProvider -Repository PSGallery -Force;
-    Install-Package -Name docker -ProviderName DockerMsftProvider -force;
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
+    Install-Module -Name DockerMsftProvider -Force
+    #Install-Package -Name docker -ProviderName DockerMsftProvider -force;
+    Install-Package -Name docker -force;
 }
 
 function InstallDockerCompose()
