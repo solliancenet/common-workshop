@@ -2252,6 +2252,8 @@ function InstallChocolaty()
     {
         write-host "Installing Chocolaty";
 
+        $env:chocolateyVersion = '1.4.0'
+
         $env:chocolateyUseWindowsCompression = 'true'
         Set-ExecutionPolicy Bypass -Scope Process -Force; 
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; 
@@ -2287,6 +2289,20 @@ function InstallAzPowerShellModule
         Install-Module Az -Repository PSGallery -Force -AllowClobber
     }
     #>
+}
+
+function InstallPostgres14()
+{
+    write-host "Installing Postgres 14";
+
+    choco install postgresql14 --ignoredetectedreboot --force
+}
+
+function InstallPostgres16()
+{
+    write-host "Installing Postgres 16";
+
+    choco install postgresql16 --ignoredetectedreboot --force
 }
 
 function InstallSplunkServer
