@@ -1632,9 +1632,8 @@ function InstallNotepadPP()
 	
 	if (!$item)
 	{
-        $downloadNotePad = "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v7.9.1/npp.7.9.1.Installer.exe";
-        
-        #https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v7.9.1/npp.7.9.1.Installer.exe
+        #$downloadNotePad = "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v7.9.1/npp.7.9.1.Installer.exe";
+        $downloadNotePad = "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6/npp.8.6.Installer.x64.exe"
 
         mkdir c:\temp -ea silentlycontinue   
 		
@@ -2289,6 +2288,13 @@ function InstallAzPowerShellModule
         Install-Module Az -Repository PSGallery -Force -AllowClobber
     }
     #>
+}
+
+function InstallpgAdmin()
+{
+    write-host "Installing pgAdmin 4";
+
+    choco install pgadmin4
 }
 
 function InstallPostgres14()
