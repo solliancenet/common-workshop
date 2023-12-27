@@ -2047,7 +2047,7 @@ function InstallWSL2
     #>
 }
 
-function InstallVisualStudio($edition)
+function InstallVisualStudio($edition, $version="2022")
 {
     Write-Host "Install Visual Studio [$edition]." -ForegroundColor Yellow
 
@@ -2056,20 +2056,41 @@ function InstallVisualStudio($edition)
     {
         Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
     }
-        
-    if ($edition -eq "enterprise")
+
+    if ( $version -eq "2019")
     {
-      choco install visualstudio2019enterprise -y --ignoredetectedreboot
+        if ($edition -eq "enterprise")
+        {
+        choco install visualstudio2019enterprise -y --ignoredetectedreboot
+        }
+
+        if ($edition -eq "community")
+        {
+        choco install visualstudio2019community -y --ignoredetectedreboot
+        }
+
+        if ($edition -eq "preview")
+        {
+            choco install visualstudio2019enterprise-preview -pre -y --ignoredetectedreboot
+        }
     }
 
-    if ($edition -eq "community")
+    if ( $version -eq "2022")
     {
-      choco install visualstudio2019community -y --ignoredetectedreboot
-    }
+        if ($edition -eq "enterprise")
+        {
+        choco install visualstudio2022enterprise -y --ignoredetectedreboot
+        }
 
-    if ($edition -eq "preview")
-    {
-        choco install visualstudio2019enterprise-preview -pre -y --ignoredetectedreboot
+        if ($edition -eq "community")
+        {
+        choco install visualstudio2022community -y --ignoredetectedreboot
+        }
+
+        if ($edition -eq "preview")
+        {
+            choco install visualstudio2022enterprise-preview -pre -y --ignoredetectedreboot
+        }
     }
 }
 
