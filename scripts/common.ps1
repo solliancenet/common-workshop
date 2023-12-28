@@ -25,7 +25,7 @@ function SetFileOptions()
     reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v HideFileExt /t REG_DWORD /d 0 /f
     reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v Hidden /t REG_DWORD /d 0 /f
     reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v HideDrivesWithNoMedia /t REG_DWORD /d 0 /f
-    
+
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "HideFileExt" -Value 0 -ea SilentlyContinue;
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "Hidden" -Value 0 -ea SilentlyContinue;
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "HideDrivesWithNoMedia" -Value 0 -ea SilentlyContinue;
@@ -1800,6 +1800,8 @@ function InstallUbuntu()
 
 function InstallWebPI
 {
+    write-host "Installing WebPI";
+
     $url = "https://go.microsoft.com/fwlink/?LinkId=287166"
     $output = "c:\temp\WebPlatformInstaller_amd64_en-US.msi"
     $start_time = Get-Date
@@ -1809,11 +1811,15 @@ function InstallWebPI
 
     & c:\temp\WebPlatformInstaller_amd64_en-US.msi /quiet
 
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+    Start-Sleep -Seconds 10
+
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";C:\Program Files\Microsoft\Web Platform Installer"
 }
 
 function InstallWebPIPhp($items)
 {
+    InstallWebPI
+
     write-host "Installing WebPI items";
 
     #WebPICMD.exe /Install /Products:"PHP80x64,PHPManager,MySQLConnector"
@@ -1838,11 +1844,18 @@ function InstallIIS
 {
     write-host "Installing IIS";
 
-    #windows server
-    Install-WindowsFeature -Name Web-Server -IncludeAllSubFeature -ea silentlycontinue
+    $windowsVersion = (Get-WmiObject -class Win32_OperatingSystem).Caption
 
-    #windows 10
-    Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole, IIS-WebServer, IIS-CommonHttpFeatures, IIS-ManagementConsole, IIS-HttpErrors, IIS-HttpRedirect, IIS-WindowsAuthentication, IIS-StaticContent, IIS-DefaultDocument, IIS-HttpCompressionStatic, IIS-DirectoryBrowsing  -ea silentlycontinue
+    if ($windowsVersion -like "*Windows Server*")
+    {
+        #windows server
+        Install-WindowsFeature -Name Web-Server -IncludeAllSubFeature -ea silentlycontinue
+    }
+    else
+    {
+        #windows 10
+        Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole, IIS-WebServer, IIS-CommonHttpFeatures, IIS-ManagementConsole, IIS-HttpErrors, IIS-HttpRedirect, IIS-WindowsAuthentication, IIS-StaticContent, IIS-DefaultDocument, IIS-HttpCompressionStatic, IIS-DirectoryBrowsing  -ea silentlycontinu    
+    }
 }
 
 function InstallOffice()
@@ -1967,6 +1980,8 @@ function InstallDotNetCore($version)
 function InstallDockerDesktop($localusername)
 {
     write-host "Installing Docker Desktop";
+
+    wsl --install
 
     choco install docker-desktop --ignoredetectedreboot --force
 
