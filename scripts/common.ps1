@@ -22,6 +22,10 @@ function EnableDarkMode()
 
 function SetFileOptions()
 {
+    reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v HideFileExt /t REG_DWORD /d 0 /f
+    reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v Hidden /t REG_DWORD /d 0 /f
+    reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v HideDrivesWithNoMedia /t REG_DWORD /d 0 /f
+    
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "HideFileExt" -Value 0 -ea SilentlyContinue;
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "Hidden" -Value 0 -ea SilentlyContinue;
     Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name "HideDrivesWithNoMedia" -Value 0 -ea SilentlyContinue;
@@ -2049,7 +2053,7 @@ function InstallWSL2
 
 function InstallVisualStudio($edition, $version="2022")
 {
-    Write-Host "Install Visual Studio [$edition]." -ForegroundColor Yellow
+    Write-Host "Install Visual Studio [$edition] [$version]." -ForegroundColor Yellow
 
     # Install Chocolatey
     if (!(Get-Command choco.exe -ErrorAction SilentlyContinue)) 
@@ -2321,18 +2325,18 @@ function InstallpgAdmin()
     choco install pgadmin4
 }
 
-function InstallPostgres14()
+function InstallPostgres14($password="Solliance123")
 {
     write-host "Installing Postgres 14";
 
-    choco install postgresql14 --ignoredetectedreboot --force
+    choco install postgresql14 --params "/Password:$password /Port:5433" --ia '--enable-components server,commandlinetools' --ignoredetectedreboot --force
 }
 
-function InstallPostgres16()
+function InstallPostgres16($password="Solliance123")
 {
     write-host "Installing Postgres 16";
 
-    choco install postgresql16 --ignoredetectedreboot --force
+    choco install postgresql16 --params "/Password:$password /Port:5433" --ia '--enable-components server,commandlinetools' --ignoredetectedreboot --force
 }
 
 function InstallSplunkServer
