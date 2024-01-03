@@ -1816,11 +1816,31 @@ function InstallWebPI
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";C:\Program Files\Microsoft\Web Platform Installer"
 }
 
+function InstallUrlRewrite()
+{
+    choco install urlrewrite --ignoredetectedreboot --force
+}
+
 function InstallWebPIPhp($items)
 {
     InstallWebPI
 
     write-host "Installing WebPI items";
+
+    if ($items.contains("PHP80x64"))
+    {
+        InstallPhp "8.0.0"
+    }
+
+    if($items.contains("PHP74x64"))
+    {
+        InstallPhp "7.4.0"
+    }
+
+    if($items.contains("UrlRewrite2"))
+    {
+        InstallUrlRewrite
+    }
 
     #WebPICMD.exe /Install /Products:"PHP80x64,PHPManager,MySQLConnector"
 
